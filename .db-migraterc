@@ -1,0 +1,4 @@
+{
+  "sql-file": true,
+  "migrations-dir": "db/migrations"
+}

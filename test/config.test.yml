@@ -1,0 +1,36 @@
+# Logging configuration parameters
+logging:
+  # Level options: INFO|ERROR|DEBUG. Default: INFO
+  level: DEBUG
+  # Output options: console|file. Default: console
+  output: console
+
+pgsql:
+  host: postgis
+  user: urbo_admin
+  password: urbo
+  database: urbo
+  port: 5432
+
+redis:
+  use_cache: true
+  host: redis
+  port: 6379
+  db: 0
+  password: urbo
+  ttl: 15 # In minutes
+
+auth:
+  token_secret: XXXX
+  # token expiration in seconds
+  token_expiration: 600
+
+test:
+  users:
+    - email: admin@domain.gs
+      password: admin_test_password
+
+carto:
+  - user: smart-test
+    api_key: XXXX
+    default: true

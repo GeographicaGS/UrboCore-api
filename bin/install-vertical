@@ -1,0 +1,55 @@
+#!/usr/bin/env node
+
+'use strict';
+
+const fs = require('fs');
+const fsExtra = require('fs-extra');
+const path = require('path');
+const textFile = require('../protools/textfile.js');
+
+const USAGE = 'USAGE: npm run-script install-vertical -- <vertical-source-path> <vertical-name>';
+
+if (process.argv.length < 4) {
+  console.error('No arguments were passed');
+  console.info(USAGE);
+  process.exit();
+}
+
+const verticalPath = './verticals/';
+const srcPath = process.argv[2];
+const verticalName = process.argv[3];
+const destPath = verticalPath + verticalName;
+const mkDocs = 'mkdocs.yml';
+const mkDocsAfterLine = '  # Verticals docs go here\n';
+
+try {
+  if (fs.lstatSync(destPath).isDirectory()) {
+    console.info(`Vertical ${ verticalName } was installed, so let's update it`);
+    fsExtra.removeSync(destPath);
+  }
+} catch (e) {
+  console.info(`Fresh install of vertical ${ verticalName }`)
+}
+
+try {
+  if (!fs.lstatSync(srcPath).isDirectory() || !fs.lstatSync(path.join(srcPath, 'api')).isDirectory()) {
+    throw `${ srcPath } is not a valid vertical`;
+  }
+} catch (e) {
+  console.error('The source path does not exist');
+  console.info(USAGE);
+  process.exit();
+}
+
+fsExtra.copy(path.join(srcPath, 'api'), verticalPath + verticalName, function (err) {
+  if (err) {
+    console.error(err);
+    process.exit();
+  }
+
+  let capVerticalName = textFile.capitalizeFirstLetter(verticalName);
+  let docsLine = `  - ${ capVerticalName }: ../verticals/${ verticalName }/docs.md\n`;
+  textFile.addToFileAfter(mkDocs, docsLine, mkDocsAfterLine);
+
+  console.info(`${ verticalName } installed successfully`);
+});

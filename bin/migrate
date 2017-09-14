@@ -1,0 +1,44 @@
+#!/usr/bin/env node
+
+'use strict';
+
+const exec = require('child_process').exec;
+const process = require('process');
+const config = require('../config').getData();
+const utils = require('../utils');
+const log = utils.log();
+const ospath = require('path');
+const appDir = require('app-root-path').path;
+
+process.on('exit', function(code, t) {
+  if(!code){
+    log.info('GOODBYE!!!');
+    log.info('==========');
+  }
+   else {
+    log.error("There was an error. Aborting execution.")
+   }
+
+});
+
+var pgsql = config.pgsql;
+// DATABASE ENV
+process.env.DBHOST = pgsql.host;
+process.env.DBPORT = pgsql.port;
+process.env.DBNAME = pgsql.database;
+process.env.DBPASS = pgsql.password;
+process.env.DBUSER = pgsql.user;
+
+var CLI = ospath.join(appDir, './node_modules/.bin/db-migrate');
+CLI += ' '+process.argv.splice(2, process.argv.length-1).join(' ');
+
+log.info(CLI);
+exec(CLI, {cwd: process.cwd(), env: process.env}, function(error, stdout, stderr){
+  if(error) {
+    log.error(`${error}`);
+    process.exit(1);
+  }
+  log.info(stdout);
+  log.warn(stderr);
+  process.exit(0);
+});

@@ -1,0 +1,8 @@
+# Docker Hub: https://hub.docker.com/_/node/
+FROM node:6.10.0-onbuild
+
+RUN npm install -g node-inspector
+RUN npm install -g mocha
+RUN npm install -g istanbul
+
+EXPOSE 3000

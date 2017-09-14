@@ -1,0 +1,36 @@
+dn: ou=People,dc=domain,dc=gs
+changetype: add
+objectClass: organizationalUnit
+objectClass: top
+ou: People
+
+dn: cn=user1,ou=People,dc=domain,dc=gs
+changetype: add
+objectClass: organizationalPerson
+objectClass: top
+objectClass: inetOrgPerson
+ou: People
+cn: user1
+sn: surname1
+mail: user1@domain.gs
+userPassword: 5ebe2294ecd0e0f08eab7690d2a6ee69
+
+dn: cn=user2,ou=People,dc=domain,dc=gs
+changetype: add
+objectClass: organizationalPerson
+objectClass: top
+objectClass: inetOrgPerson
+cn: user2
+sn: surname2
+mail: user2@domain.gs
+userPassword: 5ebe2294ecd0e0f08eab7690d2a6ee69
+
+dn: cn=login,ou=People,dc=domain,dc=gs
+changetype: add
+objectClass: organizationalPerson
+objectClass: top
+objectClass: inetOrgPerson
+cn: loginuser
+sn: loginsurname5
+mail: test@test.test
+userPassword: 5ebe2294ecd0e0f08eab7690d2a6ee69

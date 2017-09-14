@@ -1,0 +1,146 @@
+#!/usr/bin/env node
+
+/**
+ * Module dependencies.
+ */
+var cache = require('../cache');
+var config = require('../config');
+var debug = require('debug')('api:server');
+var log4js = require('log4js');
+var pg = require('pg');
+var Socket = require('../routes/socket');
+var log = null;
+
+/**
+ * PGSQL connection retries config.
+ */
+var connect_retries = 3;
+var connect_retry_timeout = 3000;
+var connect_count = 1;
+
+/**
+ * Logging creator.
+ */
+var startLogger = function() {
+  var logParams = config.getLogOpt();
+  if (logParams.consoleMessage) {
+    console.log(logParams.consoleMessage);
+  }
+
+  log4js.configure({
+    appenders: logParams.logappenders,
+    replaceConsole: true
+  });
+  var log = log4js.getLogger(logParams.output);
+
+  log.setLevel(logParams.level);
+  log.info('Logger successfully started');
+
+  return log;
+};
+
+/**
+ * Server creator.
+ */
+var startServer = function() {
+  // Listen on provided port, on all network interfaces
+  var app = require('../app');
+  var http = require('http');
+
+  // Get port from environment and store in Express
+  var port = normalizePort(process.env.PORT || '3000');
+  app.set('port', port);
+
+  // Initialize HTTP server and socket
+  var server = http.createServer(app);
+  var socket = new Socket({server: server});
+
+  server.listen(port);
+  server.on('error', onError);
+  server.on('listening', function() {
+    var addr = server.address();
+    var bind = typeof addr === 'string'
+      ? 'pipe ' + addr
+      : 'port ' + addr.port;
+    debug('Listening on ', bind);
+  });
+
+  // Exiting gracefully...
+  process.on('SIGTERM', function() {
+    log.info('Exiting gracefully');
+    cache.quit();
+    socket.close();
+  });
+};
+
+/**
+ * Recursive n retries to connect PGSQL.
+ */
+var trydb = function(err, client, done) {
+  if (!err) {
+    log.info('Connected to PGSQL. Launching Server.');
+    startServer();
+
+  } else {
+    if (connect_count <= connect_retries) {
+      log.info('Connecting to PGSQL: ' + connect_count + '/' + connect_retries + ' retries failed. Waiting ' + (connect_retry_timeout / 1000) + ' seconds...');
+      connect_count = connect_count + 1;
+      setTimeout(function(){
+        pg.connect(config.getData().pgsql, trydb);
+      }, connect_retry_timeout);
+
+    } else {
+      log.fatal('FATAL EROR: Cannot connect to PGSQL.');
+    }
+  }
+};
+
+/**
+ * Normalize a port into a number, string, or false.
+ */
+var normalizePort = function(val) {
+  var port = parseInt(val, 10);
+
+  if (isNaN(port)) {
+    return val;  // Named pipe
+  }
+
+  if (port >= 0) {
+    return port;  // Port number
+  }
+
+  return false;
+};
+
+/**
+ * Event listener for HTTP server "error" event.
+ */
+var onError = function(error) {
+  if (error.syscall !== 'listen') {
+    throw error;
+  }
+
+  var bind = typeof port === 'string'
+    ? 'Pipe ' + port
+    : 'Port ' + port;
+
+  // Handle specific listen errors with friendly messages
+  switch (error.code) {
+    case 'EACCES':
+      log.error(bind + ' requires elevated privileges');
+      process.exit(1);
+      break;
+    case 'EADDRINUSE':
+      log.error(bind + ' is already in use');
+      process.exit(1);
+      break;
+    default:
+      throw error;
+  }
+};
+
+/**
+ * Creating the log and the server.
+ */
+log = startLogger();
+pg.connect(config.getData().pgsql, trydb);

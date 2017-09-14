@@ -1,0 +1,183 @@
+var express = require('express');
+var router = express.Router();
+var utils = require('../../utils');
+var log = utils.log();
+var responseValidator = utils.responseValidator;
+var util = require('util');
+var cons = require('../../cons.js');
+var auth = require('../../auth.js');
+var ScopeModel = require('../../models/scopemodel');
+var categories = require('./categories'),
+  entities = require('./entities'),
+  variables = require('./variables'),
+  permissions = require('./permissions');
+var OrionDeMA = require('../../orioncb/oriondema');
+var checkDeMA = require('../../middlewares/dema');
+var config = require('../../config');
+
+
+function checkScope(req, res, next) {
+  auth.protectScopes([req.params.scope], ['read'], {'notfound_action': 'notfound'})(req, res, next);
+}
+
+
+// Categories, entities, variables, permissions
+router.use('/:scope/categories', checkScope, checkDeMA, categories);
+router.use('/:scope/entities', checkScope, entities);
+router.use('/:scope/variables', checkScope, variables);
+router.use('/:scope/permissions', checkScope, permissions);
+
+
+/* Scope list */
+router.get('/', function(req, res, next) {
+  var model = new ScopeModel();
+  model.getAdminScopes(function(err, scopeList) {
+      if (err) {
+        next(err);
+      } else {
+        res.json(scopeList);
+      }
+  });
+});
+
+
+router.get('/:scope', checkScope, function(req, res, next) {
+  model = new ScopeModel();
+  model.getScopeForAdmin(req.params.scope, function(err, data) {
+    if (err) {
+      log.error('Devices map: Error when selecting data');
+      next(err);
+
+    } else {
+      res.json(data);
+    }
+  });
+});
+
+
+var addScopeValidator = function(req, res, next){
+  // Sync Validation
+  req.sanitize('name').trim();
+  req.checkBody('name', 'required').notEmpty();
+  req.checkBody('location', '2-dimensional array required').optional().isLocation();
+  req.checkBody('zoom', 'int >0 required').optional().isInt().isZoom();
+  req.checkBody('multi', 'boolean required').isBoolean();
+  req.checkBody('timezone', 'invalid timezone').optional().isValidTimezone();
+   // Async Validation
+  req.checkBody('multi', 'invalid or non-existent parent_id').optional().validMulti(req.body.parent_id, res.user);
+
+  return next();
+}
+
+router.post('/',
+  addScopeValidator,
+  responseValidator,
+  checkDeMA,
+  function(req, res, next){
+
+
+
+    // Actual insertion
+    var model = new ScopeModel();
+    model.addAdminScopes(req.body, function(err, data){
+      if(err){
+        return next(err);
+      }
+      else {
+        if (req.withDeMA) {
+          let dema = new OrionDeMA(config.getDeMA(res.locals.dema_access_token));
+          dema.updateScopeStatus(data.id, 'created')
+          .then( d => {
+            return res.status(201).json(data);
+          })
+        }
+        else { return res.status(201).json(data);  }
+
+      }
+    });
+});
+
+var updateScopeValidator = function(req, res, next){
+  req.sanitize('name').trim();
+
+  // Sync Validation
+  req.checkBody('zoom', 'int >0 required').optional().isInt().isZoom();
+  req.checkBody('status', 'int required').optional().isInt();
+  req.checkBody('location', '2-dimensional array required').optional().isLocation();
+  req.checkBody('timezone', 'invalid timezone').optional().isValidTimezone();
+
+  return next();
+}
+
+router.put('/:scope',
+  checkScope,
+  updateScopeValidator,
+  responseValidator,
+  checkDeMA,
+  function(req, res, next){
+
+    var model = new ScopeModel();
+    model.updateAdminScopes(req.params.scope,
+      req.body,
+      function(err, data){
+        if(err){
+          return next(err);
+        }
+        else {
+          if (req.withDeMA) {
+            let dema = new OrionDeMA(config.getDeMA(res.locals.dema_access_token));
+            dema.updateScopeStatus(req.params.scope, 'updated')
+            .then( d => {
+              return res.sendStatus(200);
+            })
+          }
+          else { return res.sendStatus(200); }
+
+        }
+    });
+});
+
+router.delete('/:scope',
+  checkScope,
+  checkDeMA,
+  function(req, res, next){
+
+  var model = new ScopeModel();
+  model.deleteAdminScopes(req.params.scope, function(err, status){
+    if(err){
+      next(err);
+    }
+    else {
+      if(status==='ok'){
+          if (req.withDeMA) {
+            var dema = new OrionDeMA(config.getDeMA(res.locals.dema_access_token));
+            dema.deleteScope(req.params.scope)
+            .then( d => {
+              return res.json({status: status});
+            })
+          }
+          else { return res.json({status: status}); }
+      }
+      else{
+        res.sendStatus(404);
+      }
+    }
+  });
+});
+
+// Children
+router.get('/:scope/multi/children', checkScope, function(req, res, next){
+  var model = new ScopeModel();
+  model.getChildrenForScope(req.params.scope, function(err, children){
+    if(err){
+      next(err);
+    }
+    else {
+      res.json(children);
+    }
+  });
+});
+
+
+
+module.exports = router;

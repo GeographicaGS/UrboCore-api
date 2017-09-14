@@ -1,0 +1,16 @@
+site_name: URBO API
+pages:
+- Home: index.md
+- API Reference:
+  - Metadata: reference/metadata.md
+  - Scopes: reference/scopes.md
+  - Entities: reference/entities.md
+  - Variables: reference/variables.md
+  - Devices: reference/devices.md
+  - Users: reference/users.md
+  - Logs: reference/logs.md
+  - Admin:
+    - Scopes : reference/admin/scopes.md
+  # Verticals docs go here
+- Sockets: sockets.md
+- Database: database.md

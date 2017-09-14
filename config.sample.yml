@@ -1,0 +1,119 @@
+# Logging parameters.
+logging:
+  # Options: ALL | TRACE | DEBUG | INFO | WARN | ERROR | FATAL | OFF. Default: INFO.
+  level: DEBUG
+  # Options: console | file | dailyRotatingFile | sizeRotatingFile. Default: console.
+  output: console
+  # Configure the log file.
+  file:
+    # Default: `./logs`
+    dir: ./logs
+    # Default: `the_log`.
+    name: api
+    # File size in MB for `sizeRotatingFile` log type. Default: 20 MB.
+    maxSize: 20
+    # Number of old files to keep for `sizeRotatingFile` log type. Default: 5.
+    oldFiles: 5
+    # Boolean. If true, it'll create a separate file for errors. Default: false.
+    separateError: true
+  # Configure the access log. If its level is inferior than the main level it won't be logged.
+  # Documentaiton: https://github.com/nomiddlename/log4js-node/wiki/Connect-Logger
+  access:
+    # Options: Same as the main level. Default: The one used in the main level.
+    level: INFO
+    # Optional. For using log4js default format: false.
+    format: :remote-addr - ":method :url HTTP/:http-version" :status :res[content-length] :response-time ":user-agent"
+    # Optional array: each element it's like a regex. Default: empty.
+    nolog:
+      - ^/notifier
+
+pgsql:
+  host: postgis
+  user: admin
+  password: password
+  database: urbo
+  port: 5432
+
+redis:
+  use_cache: true
+  host: redis
+  port: 6379
+  db: 0
+  password: password
+  ttl: 15  # In minutes
+
+ldap:
+  url: ldap://x.x.x.x:x
+  bindDn: "Dn"
+  bindCredentials: cred
+  searchBase: "Base"
+  searchFilter: "mail={{username}}"
+  defaultScopes:
+    - scope_name
+
+dema:
+  orion:
+    - secret: secret
+      id_subs: id_subs
+      service: service
+      subservice: /subservice
+      user: admin
+      password: XXXXXXXX
+      portAuthtk: 15001
+      portCtxApi: 10027
+      urlCtxBrBase: https://x.x.x.x
+    - secret: secret
+      service: service
+      subservice: /subservice
+      portCtxApi: 1026
+      urlCtxBrBase: http://x.x.x.x
+  vertical_translator:
+    dema_name: original_name
+
+auth:
+  token_secret: XXXX
+  # Optional: token expiration in seconds. Default to 60.
+  token_expiration: 600
+
+notifier:
+  token_secret: XXXXX
+
+orion:
+  - id_subs: urbo_test
+    service: myservice
+    subservice: /mysubservice
+    user: myuser
+    password: mypassword
+    portAuthtk: 00000
+    portCtxApi: 00000
+    urlCtxBrBase: https://0.0.0.0
+
+test:
+  users:
+    - email: admin@domain.gs
+      password: invent_pass
+
+categories:
+  - id: dumps
+    carto:
+      namedmaps:
+        - dumps/dumps_example01.json
+        - dumps/dumps_example02.json
+
+  - id: lighting
+    carto:
+      namedmaps:
+        - lighting/lighting_example01.json
+        - lighting/lighting_example02.json
+
+carto:
+  - user: mycartouser
+    api_key: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    default: true
+  - user: mycartouser02
+    api_key: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# Guadalajara MicroStrategy API parameteres
+microstrategy:
+  tokenRenew: 20 #minutes
+  apiUrl: "https://xxxxxxxxxxxxxxxxxxxx"

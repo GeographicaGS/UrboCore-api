@@ -1,0 +1,12 @@
+{
+"dev": {
+    "driver": "pg",
+    "user": {"ENV": "DBUSER"},
+    "password": { "ENV": "DBPASS"},
+    "host": {"ENV": "DBHOST"},
+    "port": {"ENV": "DBPORT"},
+    "database": {"ENV": "DBNAME"},
+    "schema": "public"
+  }
+}
+

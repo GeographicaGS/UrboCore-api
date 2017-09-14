@@ -1,0 +1,152 @@
+#!/usr/bin/env node
+
+'use strict';
+
+var Carto = require('cartodb'),
+  config = require('../config').getData(),
+  cfgCARTO = config.carto,
+  cfgCategories = config.categories,
+  MetadataInstanceModel = require('../models/metadatainstancemodel'),
+  fs = require('fs');
+
+/*
+ * Showing a little bit of courtesy
+ */
+console.info('NAMED MAPS LOADER');
+console.info('=================\n');
+
+process.on('exit', function() {
+  console.info('\nGOODBYE!!!');
+  console.info('==========');
+});
+
+/*
+ * Constants definition
+ */
+var VERTICALS_DIR = 'verticals'
+var NAMEDMAPS_DIR = 'namedmaps';
+var SEPARTAROR = '_';
+var VERBOSE = true;
+
+var prefix = process.argv[2] || 'dev';
+
+/*
+ * Functions definition
+ */
+var processFile = function(api, vertical, jsonName) {
+  var template = fs.readFileSync(`${VERTICALS_DIR}/${vertical}/${NAMEDMAPS_DIR}/${jsonName}`, 'utf8');
+  // Replacing all groups of spaces and new lines into one space
+  template = template.replace(/\s\s+/g, ' ');
+  template = JSON.parse(template);
+
+  template.name = prefix + SEPARTAROR + template.name;
+  var templateId = template.name;
+
+  checkTemplate(api, template, templateId);
+};
+
+var checkTemplate = function(api, template, templateId) {
+  api.definition({
+    template_id: templateId
+  })
+    .on('done', function(res) {
+      updateTemplate(api, template, templateId);
+    })
+    .on('_error', function(err) {
+      createTemplate(api, template, templateId);
+    });
+};
+
+var createTemplate = function(api, template, templateId) {
+  api.create({
+    template: template
+  })
+    .on('done', function(res) {
+      instantiateTemplate(api, templateId);
+    })
+    .on('_error', function(err,b,c) {
+      onError(api, templateId, err);
+    });
+};
+
+var updateTemplate = function(api, template, templateId) {
+  api.update({
+    template: template
+  })
+    .on('done', function(res) {
+      instantiateTemplate(api, templateId);
+    })
+    .on('_error', function(err) {
+      onError(api, templateId, err);
+    });
+};
+
+var instantiateTemplate = function(api, templateId) {
+  // pass
+};
+
+var deleteTemplate = function(api, templateId) {
+  api.delete({
+    template_id: templateId
+  }).on('done', function(res) {
+    if (VERBOSE) {
+      console.info(api.user + '\'s ' + templateId + ' DELETED');
+    }
+  })
+  .on('_error', function(err) {
+    onError(api, templateId, err);
+  });
+};
+
+var onError = function(api, templateId, err) {
+  console.error('An error happened with the user ' + api.user + ' and the ' +
+                'template ' + templateId + ': ' + err);
+};
+
+/*
+ * THE MAIN PROCESS!!!
+ */
+var m = new MetadataInstanceModel();
+m.getCARTOAccountsAndCategories()
+
+.then( data => {
+  for (let o of data.rows){
+    // Find the category in the config
+    let category = cfgCategories.find(e => {
+      return e.id == o.id_category;
+    });
+
+    // Find the list of namedmaps for the category
+    if (!category || !category.hasOwnProperty('carto') || !category.carto.hasOwnProperty('namedmaps')){
+      console.warn(`Warning: cannot find namedmaps definition for category ${o.id_category}`);
+      continue;
+    }
+    let vertical = category.id;
+    let namedmaps = category.carto.namedmaps;
+
+    // find the CARTO API_KEY
+    let account = cfgCARTO.find(e => {
+      return e.user == o.account;
+    });
+
+    if (!account || !account.api_key) {
+      console.error(`Warning: cannot find API_KEY for account ${o.account}`);
+      process.exit(-1);
+    }
+    for (let jsonName of namedmaps) {
+      let api = new Carto.Maps.Named({
+        user: account.user,
+        api_key: account.api_key,
+        maps_api_url: 'https://' + account.user + '.carto.com/api/v1/map/named'
+      });
+
+      processFile(api, vertical, jsonName);
+    }
+  }
+  m.close();
+})
+
+.catch( err => {
+  console.error('Cannot get accounts and categories');
+  console.error(err);
+});

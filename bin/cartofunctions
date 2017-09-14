@@ -1,0 +1,135 @@
+#!/usr/bin/env node
+
+'use strict';
+
+var _ = require('underscore');
+var process = require('process');
+var Carto = require('cartodb');
+var config = require('../config').getData();
+var ospath = require('path');
+var appDir = require('app-root-path').path;
+var fs = require('fs');
+var util = require('util');
+var utils = require('../utils');
+var log = utils.log();
+
+/*
+ * Showing a little bit of courtesy
+ */
+log.info('CARTO FUNCTIONS LOADER');
+log.info('======================\n');
+
+process.on('exit', function(code, t) {
+  if (!code) {
+    log.info('GOODBYE!!!');
+    log.info('==========');
+  } else {
+    log.error('There was an error. Aborting execution.')
+  }
+});
+
+/*
+ * Constants definition
+ */
+var BASE = './db/';
+var MAIN_BASE = ospath.join(appDir, BASE);
+var BOOTSTRAP = 'bootstrap.sql';
+
+var SEPARTAROR = '_';
+var VERBOSE = true;
+
+/*
+ * Functions definition
+ */
+var discoverFunctions = function(basepath, master) {
+  var bootstrapsql = fs.readFileSync(ospath.join(basepath, master));
+  bootstrapsql = bootstrapsql.toString();
+  var patternCommon = new RegExp(/^\\ir/);
+  var patternCarto = new RegExp(/^-- CARTO \\ir/);
+
+  var candidates = _.filter(bootstrapsql.split('\n'), function(line) { return patternCommon.test(line) || patternCarto.test(line); });
+  var files = _.map(candidates, function(candidate) {
+    return ospath.join(basepath, (candidate.split('\\ir')[1]).trim());
+  });
+
+  return files;
+};
+
+function loadFunction(sql, i, cb) {
+  var file = files[i];
+  var func = fs.readFileSync(file).toString();
+  sql.execute(func)
+    .done(data => {
+      if (data.notices){
+        for (let d of data.notices) {
+          log.warn(d);
+        }
+      }
+
+      if (i < (files.length - 1)) {
+        loadFunction(sql, i + 1, cb);
+      } else {
+        cb();
+      }
+    })
+    .error(errors => {
+      for (let e of errors) {
+        log.error(e);
+      }
+      cb(errors);
+    });
+}
+
+function discoverVerticals() {
+  var files = [];
+  var verticals = './verticals/';
+  var verticalsBase = ospath.join(appDir, verticals);
+
+  for (let vertical of fs.readdirSync(verticalsBase)) {
+    var currentDir = ospath.join(verticalsBase, vertical, BASE);
+    var bootstrapFile = ospath.join(verticalsBase, vertical, BASE, BOOTSTRAP);
+    if (fs.existsSync(bootstrapFile)) {
+      files.push(currentDir);
+    }
+  }
+
+  return files;
+}
+
+/*
+ * THE MAIN PROCESS!!!
+ */
+function loadIntoAccount(i) {
+  var account = config.carto[i];
+  log.info('============================================');
+  log.info('Uploading functions for user ' + account.user);
+  log.info('============================================');
+  var sql = new Carto.SQL({
+    user: account.user,
+    api_key: account.api_key,
+    sql_api_url: 'https://' + account.user + '.carto.com/api/v2/sql'
+  });
+
+  if (account.user === 'undefined') {  // The wildcard invalid user
+    return;
+  }
+
+  loadFunction(sql, 0, error => {
+    if (error) {
+      log.error('Something went wrong at ' + account.user);
+    }
+    if (i < (config.carto.length - 1)) {
+      loadIntoAccount(i + 1);
+    }
+  });
+}
+
+// BOOTSTRAP
+var directories = [MAIN_BASE];
+directories = directories.concat(discoverVerticals());
+var files = [];
+for (let directory of directories) {
+  files = files.concat(discoverFunctions(directory, BOOTSTRAP))
+}
+
+loadIntoAccount(0);
