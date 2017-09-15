@@ -14,11 +14,9 @@ process.on('exit', function(code, t) {
   if(!code){
     log.info('GOODBYE!!!');
     log.info('==========');
+  } else {
+    log.error('There was an error. Aborting execution.');
   }
-   else {
-    log.error("There was an error. Aborting execution.")
-   }
-
 });
 
 var pgsql = config.pgsql;
@@ -30,12 +28,12 @@ process.env.DBPASS = pgsql.password;
 process.env.DBUSER = pgsql.user;
 
 var CLI = ospath.join(appDir, './node_modules/.bin/db-migrate');
-CLI += ' '+process.argv.splice(2, process.argv.length-1).join(' ');
+CLI += ' ' + process.argv.splice(2, process.argv.length-1).join(' ');
 
 log.info(CLI);
-exec(CLI, {cwd: process.cwd(), env: process.env}, function(error, stdout, stderr){
+exec(CLI, {cwd: process.cwd(), env: process.env}, function(error, stdout, stderr) {
   if(error) {
-    log.error(`${error}`);
+    log.error(`${ error }`);
     process.exit(1);
   }
   log.info(stdout);

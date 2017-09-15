@@ -36,6 +36,7 @@ config.yml
 db-config.env
 site
 report
+repo_verticals/
 verticals/*
 !verticals/index.js
 db/migrations/*

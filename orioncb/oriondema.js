@@ -19,7 +19,10 @@ function makeApi(length) {
 }
 
 function verticalTranslator(vertical) {
-  var demaVerticals = config.getData().dema.vertical_translator;
+  var demaConfig = config.getData().dema;
+  var demaVerticals = demaConfig && demaConfig.vertical_translator
+    ? demaConfig.vertical_translator
+    : {};
   return demaVerticals[vertical] || vertical;
 }
 
