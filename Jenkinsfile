@@ -51,7 +51,7 @@ node("docker") {
 
                 if (branch_name == "master") {
                     echo "Deploying master ... (not today)"
-                    // sh "ansible urbo-production -a 'sh /data/app/urbo/urbocore-api/deploy.sh'"
+                    sh "ansible urbo-production -a 'sh /data/app/urbo/urbocore-api/deploy.sh'"
 
                 } else if (branch_name == "dev") {
                     echo "Deploying dev ..."
