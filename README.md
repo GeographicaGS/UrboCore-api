@@ -1,4 +1,4 @@
-# URBO API
+# UrboCore API
 
 This project is the API of URBO solutions for smart cities.
 
@@ -27,3 +27,7 @@ Just build
 ```
 mkdocs build
 ```
+
+## License
+
+UrboCore API is licensed under Affero General Public License (GPL) version 3.
