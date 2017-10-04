@@ -1,0 +1,22 @@
+postgis:
+  image: geographica/postgis:postgresql-9.4.5-postgis-2.2.0-gdal-2.0.1-patched
+  restart: always
+  volumes_from:
+    - urbo_pgdata
+  volumes:
+    - ./:/usr/src
+
+redis:
+  image: redis:latest
+  ports:
+    - "6379:6379"
+  volumes:
+    - ./api/redis.conf:/usr/local/etc/redis/redis.conf
+  command: redis-server /usr/local/etc/redis/redis.conf
+
+api:
+  build: .
+  restart: always
+  links:
+    - postgis:postgis
+    - redis:redis
