@@ -1,20 +1,20 @@
 // Copyright 2017 Telefónica Digital España S.L.
-// 
+//
 // This file is part of UrboCore API.
-// 
+//
 // UrboCore API is free software: you can redistribute it and/or
 // modify it under the terms of the GNU Affero General Public License as
 // published by the Free Software Foundation, either version 3 of the
 // License, or (at your option) any later version.
-// 
+//
 // UrboCore API is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero
 // General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU Affero General Public License
 // along with UrboCore API. If not, see http://www.gnu.org/licenses/.
-// 
+//
 // For those usages not covered by this license please contact with
 // iot_support at tid dot es
 
@@ -934,21 +934,19 @@ MetadataInstanceModel.prototype.getMapMetadataQuery = function(scope, cb) {
 MetadataInstanceModel.prototype.getEntitiesForDevicesMapByEntity = function(scope, entities, cb) {
 
   var dev_ents = _.map(entities.split(','), function(ent) {return modelutils.wrapStrings(ent, '\'')});
-  var q = ['WITH q AS',
-    '(SELECT e.id_entity,s.dbschema,',
-    '(CASE WHEN v.table_name IS NULL THEN e.table_name ELSE v.table_name END) AS table_name,',
-    'v.entity_field,v.id_variable',
-    'FROM metadata.scopes s',
-    'INNER JOIN metadata.categories_scopes c on c.id_scope = s.id_scope',
-    'INNER JOIN metadata.entities_scopes e on c.id_category=e.id_category',
-    'INNER JOIN metadata.variables_scopes v on v.id_entity=e.id_entity',
-    'WHERE s.status = 1 AND s.id_scope=$1 AND e.id_entity IN (',dev_ents,'))',
-    'SELECT id_entity,dbschema, table_name,',
-    'array_agg(entity_field) AS vars,',
-    'array_agg(id_variable) AS id_vars',
-    'FROM q GROUP BY id_entity,dbschema,table_name'];
+  var q = `WITH q AS (
+        SELECT vs.id_entity, vs.id_scope AS dbschema,
+            es.table_name, vs.entity_field, vs.id_variable
+          FROM metadata.variables_scopes vs
+            INNER JOIN metadata.entities_scopes es
+            ON vs.id_entity = es.id_entity
+          WHERE vs.id_scope = $1 AND vs.id_entity IN ('parking.spot') AND es.id_scope = $1 AND es.id_entity IN ('parking.spot')
+      )
+      SELECT id_entity, dbschema, table_name, array_agg(entity_field) AS vars, array_agg(id_variable) AS id_vars
+        FROM q
+        GROUP BY id_entity, dbschema, table_name`;
 
-  this.query(q.join(' '),[scope],function(err,d) {
+  this.query(q,[scope],function(err,d) {
     if (err) return cb(err);
     return cb(null, d);
   });
