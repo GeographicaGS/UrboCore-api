@@ -948,10 +948,12 @@ MetadataInstanceModel.prototype.getEntitiesForDevicesMapByEntity = function(scop
         FROM q
         GROUP BY id_entity, dbschema, table_name`;
 
-  this.query(q,[scope],function(err,d) {
-    if (err) return cb(err);
-    return cb(null, d);
-  });
+  if (cb) {
+    return this.query(q, [scope], cb);
+
+  } else {
+    return this.promise_query(q, [scope]);
+  }
 }
 
 MetadataInstanceModel.prototype.getEntitiesForDevicesMapByScope = function(scope, entities, cb) {
@@ -961,11 +963,12 @@ MetadataInstanceModel.prototype.getEntitiesForDevicesMapByScope = function(scope
     'INNER JOIN metadata.entities_scopes e on e.id_scope = s.id_scope',
     'WHERE s.status = 1 AND s.id_scope=$1 AND e.id_entity IN (',dev_ents,')'];
 
-  this.query(q.join(' '),[scope],function(err,d) {
-    if (err) return cb(err);
-    return cb(null, d);
-  });
+  if (cb) {
+    return this.query(q.join(' '), [scope], cb);
 
+  } else {
+    return this.promise_query(q.join(' '), [scope]);
+  }
 }
 
 MetadataInstanceModel.prototype.getChildrenForScope = function(scope, cb) {

@@ -234,7 +234,7 @@ DevicesModel.prototype._getVarData = function(data,geojson,geojsonCollection) {
   if (geojsonCollection) {
     dt = {
       type: 'FeatureCollection',
-      'features': dt
+      features: dt
     };
   }
 
