@@ -19,6 +19,7 @@ Returns the device map.
 Params:
 - entities (mandatory): comma separated of entities ids.
 - geojson (optional): boolean (default = false)
+- geojson_collection (optional): boolean (default = false)
 
 
 Response:
@@ -49,6 +50,34 @@ WITH GEOJSON
       "lastdata": [{"var":"<id_var>","value":""}]
     }
   }]
+
+WITH GEOJSON COLLECTION
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -5.103975,
+          37.233236
+        ]
+      },
+      "properties": {
+        "device_id": "vertical.category.variable:8m1",
+        "timeinstant": "2016-06-21T07:56:36.618",
+        "entity_id": "vertical.category.variable",
+        "lastdata": [
+          {
+            "var": "<id_var>",
+            "value":""
+          }
+        ]
+      }
+    }
+  ]
+}
 ```
 
 ### POST /:scope/devices/map/counters

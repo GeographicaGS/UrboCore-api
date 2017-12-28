@@ -1,20 +1,20 @@
 // Copyright 2017 Telefónica Digital España S.L.
-// 
+//
 // This file is part of UrboCore API.
-// 
+//
 // UrboCore API is free software: you can redistribute it and/or
 // modify it under the terms of the GNU Affero General Public License as
 // published by the Free Software Foundation, either version 3 of the
 // License, or (at your option) any later version.
-// 
+//
 // UrboCore API is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero
 // General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU Affero General Public License
 // along with UrboCore API. If not, see http://www.gnu.org/licenses/.
-// 
+//
 // For those usages not covered by this license please contact with
 // iot_support at tid dot es
 
@@ -106,7 +106,7 @@ DevicesModel.prototype.getDevicesMapByScope = function(scope,entities,user_id,cb
 }
 
 
-DevicesModel.prototype.getDevicesMapByEntity = function(scope,entities,geojson,user_id,cb) {
+DevicesModel.prototype.getDevicesMapByEntity = function(scope,entities,geojson,geojsonCollection,user_id,cb) {
   /*
   *   [{
   *     "device_id":"watering.sosteco.weatherstation:es1",
@@ -174,7 +174,7 @@ DevicesModel.prototype.getDevicesMapByEntity = function(scope,entities,geojson,u
             log.debug(sqls.join(' UNION ALL '));
             cb(null,null);
           } else {
-            var dt = this._getVarData(data.rows, geojson);
+            var dt = this._getVarData(data.rows, geojson, geojsonCollection);
             cb(null, dt);
           }
         }).bind(this));
@@ -183,7 +183,7 @@ DevicesModel.prototype.getDevicesMapByEntity = function(scope,entities,geojson,u
   }).bind(this));
 }
 
-DevicesModel.prototype._getVarData = function(data,geojson) {
+DevicesModel.prototype._getVarData = function(data,geojson,geojsonCollection) {
   var dt = data.map(function(obj) {
     var lData = [];
     var var_fields = obj.json_entity.var_names.split(',');
@@ -200,7 +200,7 @@ DevicesModel.prototype._getVarData = function(data,geojson) {
         lData.push(dataObj);
       }
     }
-    if (geojson) {
+    if (geojson || geojsonCollection) {
       return {
         'type': 'Feature',
         'geometry': {
@@ -230,6 +230,14 @@ DevicesModel.prototype._getVarData = function(data,geojson) {
       };
     }
   });
+
+  if (geojsonCollection) {
+    dt = {
+      type: 'FeatureCollection',
+      'features': dt
+    };
+  }
+
   return dt;
 }
 
