@@ -940,7 +940,9 @@ MetadataInstanceModel.prototype.getEntitiesForDevicesMapByEntity = function(scop
           FROM metadata.variables_scopes vs
             INNER JOIN metadata.entities_scopes es
             ON vs.id_entity = es.id_entity
-          WHERE vs.id_scope = $1 AND vs.id_entity IN ('parking.spot') AND es.id_scope = $1 AND es.id_entity IN ('parking.spot')
+          WHERE vs.id_scope = $1 AND vs.id_entity IN (${ dev_ents })
+            AND es.id_scope = $1 AND es.id_entity IN (${ dev_ents })
+            AND vs.type <> 'aggregated'
       )
       SELECT id_entity, dbschema, table_name, array_agg(entity_field) AS vars, array_agg(id_variable) AS id_vars
         FROM q
