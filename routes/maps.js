@@ -63,12 +63,12 @@ router.get('/:entity', entityValidator, entityNowResponse);
 
 router.post('/:entity/now', entityValidator, filtersValidator,
   responseValidator, function(req, res, next) {
-  req.opts = {
-    filters: req.body.filters || {'condition': {}},
-    bbox: req.body.filters ? req.body.filters.bbox : undefined
-  };
+    req.opts = {
+      filters: req.body.filters || {'condition': {}},
+      bbox: req.body.filters ? req.body.filters.bbox : undefined
+    };
 
-  return next();
-}, entityNowResponse);
+    return next();
+  }, entityNowResponse);
 
 module.exports = router;
