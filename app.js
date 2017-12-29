@@ -1,20 +1,20 @@
 // Copyright 2017 Telefónica Digital España S.L.
-// 
+//
 // This file is part of UrboCore API.
-// 
+//
 // UrboCore API is free software: you can redistribute it and/or
 // modify it under the terms of the GNU Affero General Public License as
 // published by the Free Software Foundation, either version 3 of the
 // License, or (at your option) any later version.
-// 
+//
 // UrboCore API is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero
 // General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU Affero General Public License
 // along with UrboCore API. If not, see http://www.gnu.org/licenses/.
-// 
+//
 // For those usages not covered by this license please contact with
 // iot_support at tid dot es
 
@@ -32,6 +32,7 @@ var metadata = require('./routes/metadata');
 var variables = require('./routes/variables');
 var devices = require('./routes/devices');
 var entities = require('./routes/entities');
+var maps = require('./routes/maps');
 var indicators = require('./routes/indicators');
 var users = require('./routes/users');
 var admin = require('./routes/admin/admin');
@@ -103,6 +104,7 @@ app.use('/:scope/devices', auth.publishedOrLogged, devices);
 app.use('/:scope/entities', auth.publishedOrLogged, entities);
 app.use('/:scope/frames', auth.publishedOrLogged, frames);
 app.use('/:scope/variables', auth.publishedOrLogged, variables);
+app.use('/:scope/maps', auth.publishedOrLogged, maps);
 app.use('/:scope/:category/indicators', auth.publishedOrLogged, indicators);
 
 verticals(app);  // Load the routes of the installed verticals
