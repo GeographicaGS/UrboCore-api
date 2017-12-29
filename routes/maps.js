@@ -20,7 +20,6 @@
 
 'use strict';
 
-const config = require('../config.js');
 const express = require('express');
 const MapsModel = require('../models/mapsmodel');
 const utils = require('../utils.js');
