@@ -102,9 +102,9 @@ app.use('/logs', auth.logged, logs);
 app.use('/users', auth.logged,users);
 app.use('/:scope/devices', auth.publishedOrLogged, devices);
 app.use('/:scope/entities', auth.publishedOrLogged, entities);
-app.use('/:scope/maps', auth.publishedOrLogged, maps);
 app.use('/:scope/frames', auth.publishedOrLogged, frames);
 app.use('/:scope/variables', auth.publishedOrLogged, variables);
+app.use('/:scope/maps', auth.publishedOrLogged, maps);
 app.use('/:scope/:category/indicators', auth.publishedOrLogged, indicators);
 
 verticals(app);  // Load the routes of the installed verticals

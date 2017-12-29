@@ -38,37 +38,89 @@ class MapsModel extends PGSQLModel {
   }
 
   entitiesNow(opts) {
-    return new MetadataInstanceModel()
-    .getEntitiesForDevicesMapByEntity(opts.scope, opts.entity)
+    let metaInstModel =  new MetadataInstanceModel();
+    let promises = [
+      metaInstModel.getEntitiesForDevicesMapByEntity(opts.scope, opts.entity),
+      metaInstModel.getAggVarFromEntity(opts.scope, opts.entity)
+    ];
+
+    return Promise.all(promises)
     .then((data) => {
-      if (!data.rows.length) {
-        return Promise.reject('No rows returned from query');
+      let vars = data[0].rows;
+      let aggs = data[1].rows;
+
+      if (!vars.length) {
+        return this.entitiesStatic(opts);
+
+      } else {
+        vars = vars[0];
       }
 
       let qb = new QueryBuilder(opts);
       let bbox = qb.bbox();
       let filter = qb.filter();
 
-      data = data.rows[0]
-      let schema = data.dbschema;
-      let table = data.table_name;
+      let schema = vars.dbschema;
+      let table = vars.table_name;
       let columns = ['id_entity', 'ST_AsGeoJSON(position) AS geometry',
-                     '"TimeInstant"', ...data.vars];
+                     '"TimeInstant"', ...vars.vars];
 
-      let sql = `SELECT ${ columns.join(', ') }
-          FROM ${ schema }.${ table }_lastdata
-          WHERE TRUE
-          ${ bbox }
-          ${ filter }`;
+      let sql = `SELECT *
+          FROM (
+            SELECT ${ columns.join(', ') }
+              FROM ${ schema }.${ table }_lastdata
+              WHERE TRUE ${ bbox } ${ filter }
+          ) ld`;
 
-      // TODO: Last (using `now()`) value of the aggregated variables
+      for (let i = 0; i < aggs.length; i++) {
+        sql += ` LEFT JOIN (
+            SELECT id_entity, ${ aggs[i].columns.join(', ') }
+              FROM (
+                SELECT DISTINCT ON (id_entity)
+                    id_entity, ${ aggs[i].columns.join(', ') },
+                    ROW_NUMBER() OVER(PARTITION BY id_entity ORDER BY "TimeInstant" DESC) AS rn
+                  FROM ${ schema }.${ aggs[i].table }
+                  WHERE "TimeInstant" < now()
+              ) s_agg${ i }
+              WHERE rn = 1
+          ) agg${ i }
+            ON ld.id_entity = agg${ i }.id_entity`;
+      }
 
       return this.promise_query(sql, null);
     })
+
     .then((data) => {
       data = new GeoJSONFormatter().featureCollection(data.rows);
       return Promise.resolve(data);
     })
+
+    .catch((err) => {
+      return Promise.reject(err);
+    });
+  }
+
+  entitiesStatic(opts) {
+    return new MetadataInstanceModel().getEntityTable(opts.scope, opts.entity)
+    .then((data) => {
+      if (!data.rows.length) {
+        let err = new Error('No entity or variables for the sent parameters');
+        err.status = 400;
+        return Promise.reject(err);
+      }
+
+      let table = data.rows[0].table;
+
+      let sql = `SELECT *, ST_AsGeoJSON(position) AS geometry
+          FROM ${ opts.scope }.${ table }`;
+      return this.promise_query(sql, null);
+    })
+
+    .then((data) => {
+      data = new GeoJSONFormatter().featureCollection(data.rows);
+      return Promise.resolve(data);
+    })
+
     .catch((err) => {
       return Promise.reject(err);
     });

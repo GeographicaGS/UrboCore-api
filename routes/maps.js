@@ -27,11 +27,16 @@ const utils = require('../utils.js');
 
 const log = utils.log();
 const responseValidator = utils.responseValidator;
-const timesValidator = utils.timesValidator;
 
 let router = express.Router();
 
-var filtersValidator = function(req, res, next) {
+let entityValidator = function(req, res, next) {
+  req.checkParams('entity', 'A required Urbo\'s entity ID').notEmpty();
+
+  return next();
+};
+
+let filtersValidator = function(req, res, next) {
   req.checkBody('filters', 'A required Urbo\'s filters object').notEmpty();
   req.checkBody('filters.condition', 'The conditions, can be empty, of the filters object').notEmpty();
   req.checkBody('filters.bbox', 'An optional array with the bounding box').optional().isArray();
@@ -39,23 +44,31 @@ var filtersValidator = function(req, res, next) {
   return next();
 };
 
-router.post('/:entity_id/now', filtersValidator, responseValidator,
-    function(req, res, next) {
-  var opts = {
-    scope: req.scope,
-    entity: req.params.entity_id,
-    filters: req.body.filters || {'condition': {}},
-    bbox: req.body.filters ? req.body.filters.bbox : undefined
-  };
+let entityNowResponse = function(req, res, next) {
+  let opts = req.opts || {};
+  opts.scope = req.scope;
+  opts.entity = req.params.entity;
 
   new MapsModel().entitiesNow(opts)
   .then(function(data) {
     res.json(data);
   })
+
   .catch(function(err) {
-    log.error(err);
-    res.json(err);
+    next(utils.error(err, err.status));
   });
-});
+};
+
+router.get('/:entity', entityValidator, entityNowResponse);
+
+router.post('/:entity/now', entityValidator, filtersValidator,
+  responseValidator, function(req, res, next) {
+  req.opts = {
+    filters: req.body.filters || {'condition': {}},
+    bbox: req.body.filters ? req.body.filters.bbox : undefined
+  };
+
+  return next();
+}, entityNowResponse);
 
 module.exports = router;
