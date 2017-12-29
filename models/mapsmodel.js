@@ -116,11 +116,6 @@ class MapsModel extends PGSQLModel {
       return this.promise_query(sql, null);
     })
 
-    .then((data) => {
-      data = new GeoJSONFormatter().featureCollection(data.rows);
-      return Promise.resolve(data);
-    })
-
     .catch((err) => {
       return Promise.reject(err);
     });
