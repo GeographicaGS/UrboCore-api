@@ -63,7 +63,7 @@ class MapsModel extends PGSQLModel {
       let schema = vars.dbschema;
       let table = vars.table_name;
       let columns = ['id_entity', 'ST_AsGeoJSON(position) AS geometry',
-                     '"TimeInstant"', ...vars.vars];
+        '"TimeInstant"', ...vars.vars];
 
       let sql = `SELECT *
           FROM (
