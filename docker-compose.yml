@@ -1,6 +1,5 @@
 postgis:
   image: geographica/postgis:postgresql-9.4.5-postgis-2.2.0-gdal-2.0.1-patched
-  restart: always
   volumes_from:
     - urbo_pgdata
   volumes:
@@ -16,7 +15,6 @@ redis:
 
 api:
   build: .
-  restart: always
   links:
     - postgis:postgis
     - redis:redis
