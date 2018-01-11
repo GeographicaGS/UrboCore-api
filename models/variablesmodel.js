@@ -731,12 +731,21 @@ VariablesModel.prototype.getOuters = function(opts,cb) {
 
 VariablesModel.prototype.getVariableHistoric = function(opts) {
   var metadata = new MetadataInstanceModel();
-  return metadata.getVarQuery(opts.scope, opts.idVar)
-  .then(function(data) {
-    return this.promiseRow(data);
-  }.bind(this))
+  var promises = [metadata.getVarQuery(opts.scope, opts.idVar)];
 
+  if (opts.filters.group) {
+    promises.push(metadata.getVarQuery(opts.scope, opts.filters.group));
+  }
+
+  return Promise.all(promises)
   .then(function(data) {
+    var dataVar = data[0].rows[0];
+    var dataGroup = null;
+
+    if (opts.filters.group) {
+      dataGroup = data[1].rows[0];
+    }
+
     var where = '';
     if (opts.start && opts.finish) {  // Both of them or nothing!
       where = `AND "TimeInstant" >= '${opts.start}'::timestamp AND "TimeInstant" < '${opts.finish}'::timestamp`;
@@ -747,51 +756,64 @@ VariablesModel.prototype.getVariableHistoric = function(opts) {
 
     var suffix = opts.tableSuffix || '';
 
+    // Group by feature
+    var groupBy = null;
+    var groupTable = null;
+    if (opts.filters.group) {
+      var groupBy = dataGroup.entity_field;
+      var entityTable = dataGroup.entity_table_name;
+      var groupTable = dataGroup.table_name;
+
+      if (groupTable === entityTable) {
+        groupTable = groupTable + '_lastdata';
+      }
+    }
+
     var select = null;
     if (Array.isArray(opts.agg)) {
       select = 'json_build_object(';
       for (var agg of opts.agg) {
-        select += `'${agg}', ${agg}(${data.entity_field}), `
+        select += `'${ agg }', ${ agg }(${ dataVar.entity_field }), `
       }
       select = select.slice(0, -2) + ')';
 
     } else {
-      select = `${opts.agg}(${data.entity_field})`;
+      select = `${ opts.agg }(${ dataVar.entity_field })`;
+    }
+    select += ' AS value'
+
+    var selectJoin = '';
+    var group = '';
+    if (groupBy) {
+      select += `, ${ groupBy } AS group`;
+      var selectJoin = ` ld.${ groupBy },`;
+      var group = `GROUP BY ${ groupBy }`;
     }
 
-    if (suffix==='') {
+    if (suffix === '') {
       var sql = `
-        SELECT ${select} AS value
-        FROM
-        (SELECT DISTINCT
-          ld.position,
-          p.*
-        FROM ${opts.scope}.${data.table_name} p
-        JOIN ${opts.scope}.${data.entity_table_name}_lastdata ld
-        ON ld.id_entity=p.id_entity) as foo
-        WHERE true
-        ${where}
-        ${bboxAndFilter}`;
+        SELECT ${ select }
+          FROM (
+            SELECT DISTINCT ld.position,${ selectJoin } p.*
+              FROM ${ opts.scope }.${ dataVar.table_name } p
+                JOIN ${ opts.scope }.${ dataVar.entity_table_name }_lastdata ld
+                  ON ld.id_entity = p.id_entity) AS foo
+              WHERE TRUE ${ where } ${ bboxAndFilter }
+          ${ group }`;
 
-    }
-    else {
-
+    } else {
       var sql = `
-      SELECT ${select} AS value
-      FROM ${opts.scope}.${data.entity_table_name}${suffix} p
-      WHERE true
-      ${where}
-      ${bboxAndFilter}`;
+        SELECT ${ select }
+          FROM ${ opts.scope }.${ dataVar.entity_table_name }${ suffix } p
+          WHERE TRUE ${ where } ${ bboxAndFilter }
+          ${ group }`;
     }
 
     return this.cachedQuery(sql, null);
   }.bind(this))
 
   .then(function(data) {
-    return this.promiseRow(data);
-  }.bind(this))
-
-  .then(function(data) {
+    data = opts.filters.group ? data.rows : data.rows[0];
     return Promise.resolve(new DummyFormatter().pipe(data));
   })
 
