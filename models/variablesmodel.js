@@ -1,20 +1,20 @@
 // Copyright 2017 Telefónica Digital España S.L.
-// 
+//
 // This file is part of UrboCore API.
-// 
+//
 // UrboCore API is free software: you can redistribute it and/or
 // modify it under the terms of the GNU Affero General Public License as
 // published by the Free Software Foundation, either version 3 of the
 // License, or (at your option) any later version.
-// 
+//
 // UrboCore API is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero
 // General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU Affero General Public License
 // along with UrboCore API. If not, see http://www.gnu.org/licenses/.
-// 
+//
 // For those usages not covered by this license please contact with
 // iot_support at tid dot es
 
@@ -99,7 +99,6 @@ VariablesModel.prototype.getVariablesTimeSerie = function(opts) {
   }.bind(this))
 
   .then(function(d) {
-
     var qb = new QueryBuilder(opts);
     var filter = `${qb.bbox()} ${qb.filter()}`;
 
@@ -115,6 +114,26 @@ VariablesModel.prototype.getVariablesTimeSerie = function(opts) {
     var entityTables = d.entitytables;
     var varNames = d.vars;
     var varIds = d.vars_ids;
+
+    // Group by feature
+    var groupBy = null;
+    var groupTable = null;
+    if (opts.filters.group && varIds.indexOf(opts.filters.group) >= 0) {
+      var i = varIds.indexOf(opts.filters.group);
+      var entityTable = entityTables.splice(i, 1)[0];
+      groupBy = varNames.splice(i, 1)[0];
+      groupTable = tableNames.splice(i, 1)[0];
+      varIds.splice(i, 1);
+
+      if (groupTable === entityTable) {
+        groupTable = groupTable + '_lastdata';
+      }
+    }
+
+    if (bodyVarIds.indexOf(opts.filters.group)) {
+      var i = bodyVarIds.indexOf(opts.filters.group);
+      bodyVarIds.splice(i, 1);
+    }
 
     // Adding the varIds (and their varNames and tableNames) that may have disappeared because they are repeated
     var missingVarIds = JSON.parse(JSON.stringify(bodyVarIds));
@@ -148,6 +167,17 @@ VariablesModel.prototype.getVariablesTimeSerie = function(opts) {
     for (var i in varNames) {
 
       promises.push((function() {
+        var groupColumn = '';
+        var groupAlias = '';
+        var cGroupAlias = '';
+        var from = `${ schema }.${ tableNames[i] }`;
+
+        if (groupBy && groupTable !== tableNames[i]) {
+          groupColumn = `"${ groupBy }"`;
+          groupAlias = `"${ opts.filters.group }"`;
+          cGroupAlias = `, ${ groupAlias }`
+          from = `(SELECT l."TimeInstant" as "TimeInstant", l.id_entity, l."${ varNames[i] }", r.${ groupColumn } AS ${ groupAlias } FROM ${ schema }.${ tableNames[i] } l LEFT JOIN ${ schema }.${ groupTable } r ON l.id_entity = r.id_entity)`;
+        }
 
         var sql = `
           WITH filtered AS (
@@ -161,13 +191,12 @@ VariablesModel.prototype.getVariablesTimeSerie = function(opts) {
           SELECT
             _timeserie AS start,
             (_timeserie + '${step}')::timestamp AS finish,
-            ${aggs[i]}(foo."${varNames[i]}") AS "${varIds[i]}_${aggs[i]}"
+            ${aggs[i]}(foo."${varNames[i]}") AS "${varIds[i]}_${aggs[i]}"${ cGroupAlias }
           FROM generate_series('${opts.start}'::timestamp, '${opts.finish}'::timestamp, '${step}') AS _timeserie
-          LEFT JOIN ${schema}.${tableNames[i]} foo
+          LEFT JOIN ${ from } foo
           ON foo."TimeInstant" >= _timeserie AND foo."TimeInstant" < _timeserie + '${step}'
           WHERE id_entity IN (SELECT id_entity FROM filtered)
-          GROUP BY _timeserie ORDER BY _timeserie`;
-
+          GROUP BY _timeserie${ cGroupAlias } ORDER BY _timeserie`;
 
         if (opts.findTimes && (aggs[i] === 'MIN' || aggs[i] === 'MAX')) {
           var preSQL = `
@@ -175,19 +204,18 @@ VariablesModel.prototype.getVariablesTimeSerie = function(opts) {
               baz.start,
               baz.finish,
               baz."${varIds[i]}_${aggs[i]}",
-              array_agg(quz."TimeInstant") AS times FROM (
+              array_agg(quz."TimeInstant") AS times${ cGroupAlias } FROM (
           `;
 
           var postSQL = `
               ) baz
-              JOIN ${schema}.${tableNames[i]} quz
+              JOIN ${ from } quz
               ON quz."TimeInstant" >= baz.start AND quz."TimeInstant" < baz.finish
               WHERE baz."${varIds[i]}_${aggs[i]}" = quz."${varNames[i]}"
-              GROUP BY baz.start, baz.finish, baz."${varIds[i]}_${aggs[i]}"
+              GROUP BY baz.start, baz.finish, baz."${varIds[i]}_${aggs[i]}"${ cGroupAlias }
               ORDER BY baz.start`;
 
           sql = `${preSQL} ${sql} ${postSQL}`;
-
         }
 
         return this.cachedQuery(sql);
@@ -196,7 +224,9 @@ VariablesModel.prototype.getVariablesTimeSerie = function(opts) {
 
     }
 
-
+    if (groupBy) {
+      promises.push(opts.filters.group);
+    }
 
     return Promise.all(promises);
   }.bind(this))
@@ -701,12 +731,21 @@ VariablesModel.prototype.getOuters = function(opts,cb) {
 
 VariablesModel.prototype.getVariableHistoric = function(opts) {
   var metadata = new MetadataInstanceModel();
-  return metadata.getVarQuery(opts.scope, opts.idVar)
-  .then(function(data) {
-    return this.promiseRow(data);
-  }.bind(this))
+  var promises = [metadata.getVarQuery(opts.scope, opts.idVar)];
 
+  if (opts.filters.group) {
+    promises.push(metadata.getVarQuery(opts.scope, opts.filters.group));
+  }
+
+  return Promise.all(promises)
   .then(function(data) {
+    var dataVar = data[0].rows[0];
+    var dataGroup = null;
+
+    if (opts.filters.group) {
+      dataGroup = data[1].rows[0];
+    }
+
     var where = '';
     if (opts.start && opts.finish) {  // Both of them or nothing!
       where = `AND "TimeInstant" >= '${opts.start}'::timestamp AND "TimeInstant" < '${opts.finish}'::timestamp`;
@@ -717,51 +756,64 @@ VariablesModel.prototype.getVariableHistoric = function(opts) {
 
     var suffix = opts.tableSuffix || '';
 
+    // Group by feature
+    var groupBy = null;
+    var groupTable = null;
+    if (opts.filters.group) {
+      var groupBy = dataGroup.entity_field;
+      var entityTable = dataGroup.entity_table_name;
+      var groupTable = dataGroup.table_name;
+
+      if (groupTable === entityTable) {
+        groupTable = groupTable + '_lastdata';
+      }
+    }
+
     var select = null;
     if (Array.isArray(opts.agg)) {
       select = 'json_build_object(';
       for (var agg of opts.agg) {
-        select += `'${agg}', ${agg}(${data.entity_field}), `
+        select += `'${ agg }', ${ agg }(${ dataVar.entity_field }), `
       }
       select = select.slice(0, -2) + ')';
 
     } else {
-      select = `${opts.agg}(${data.entity_field})`;
+      select = `${ opts.agg }(${ dataVar.entity_field })`;
+    }
+    select += ' AS value'
+
+    var selectJoin = '';
+    var group = '';
+    if (groupBy) {
+      select += `, ${ groupBy } AS group`;
+      var selectJoin = ` ld.${ groupBy },`;
+      var group = `GROUP BY ${ groupBy }`;
     }
 
-    if (suffix==='') {
+    if (suffix === '') {
       var sql = `
-        SELECT ${select} AS value
-        FROM
-        (SELECT DISTINCT
-          ld.position,
-          p.*
-        FROM ${opts.scope}.${data.table_name} p
-        JOIN ${opts.scope}.${data.entity_table_name}_lastdata ld
-        ON ld.id_entity=p.id_entity) as foo
-        WHERE true
-        ${where}
-        ${bboxAndFilter}`;
+        SELECT ${ select }
+          FROM (
+            SELECT DISTINCT ld.position,${ selectJoin } p.*
+              FROM ${ opts.scope }.${ dataVar.table_name } p
+                JOIN ${ opts.scope }.${ dataVar.entity_table_name }_lastdata ld
+                  ON ld.id_entity = p.id_entity) AS foo
+              WHERE TRUE ${ where } ${ bboxAndFilter }
+          ${ group }`;
 
-    }
-    else {
-
+    } else {
       var sql = `
-      SELECT ${select} AS value
-      FROM ${opts.scope}.${data.entity_table_name}${suffix} p
-      WHERE true
-      ${where}
-      ${bboxAndFilter}`;
+        SELECT ${ select }
+          FROM ${ opts.scope }.${ dataVar.entity_table_name }${ suffix } p
+          WHERE TRUE ${ where } ${ bboxAndFilter }
+          ${ group }`;
     }
 
     return this.cachedQuery(sql, null);
   }.bind(this))
 
   .then(function(data) {
-    return this.promiseRow(data);
-  }.bind(this))
-
-  .then(function(data) {
+    data = opts.filters.group ? data.rows : data.rows[0];
     return Promise.resolve(new DummyFormatter().pipe(data));
   })
 

@@ -1,20 +1,20 @@
 // Copyright 2017 Telefónica Digital España S.L.
-// 
+//
 // This file is part of UrboCore API.
-// 
+//
 // UrboCore API is free software: you can redistribute it and/or
 // modify it under the terms of the GNU Affero General Public License as
 // published by the Free Software Foundation, either version 3 of the
 // License, or (at your option) any later version.
-// 
+//
 // UrboCore API is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero
 // General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU Affero General Public License
 // along with UrboCore API. If not, see http://www.gnu.org/licenses/.
-// 
+//
 // For those usages not covered by this license please contact with
 // iot_support at tid dot es
 
@@ -31,6 +31,12 @@ function VariablesFormatter() {
 VariablesFormatter.prototype.timeSerie = function(promisesResult) {
   var varIds = promisesResult.shift();
   var aggs = promisesResult.shift();
+
+  var group = null;
+  if (typeof promisesResult[promisesResult.length - 1] === 'string') {
+    group = promisesResult.pop();
+  }
+
   var rowsNumber = promisesResult[0].rows.length;
 
   var columns = _.map(_.zip(varIds, aggs), function(pair) {
@@ -51,6 +57,9 @@ VariablesFormatter.prototype.timeSerie = function(promisesResult) {
     };
 
     for (var j = 0; j < columns.length; j++) {
+      if (group) {
+        yieldResult.data[group] = promisesResult[j].rows[i][group];
+      }
 
       var value = promisesResult[j].rows[i][columns[j]];
       var times = promisesResult[j].rows[i].times;
