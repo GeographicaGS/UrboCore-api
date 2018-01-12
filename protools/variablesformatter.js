@@ -114,10 +114,13 @@ VariablesFormatter.prototype.timeSerie = function(promisesResult) {
           time: iResult.time,
           data: {}
         };
-        insert.data[otherKey] = {};
+        insert.data[otherKey] = [];
       }
 
-      insert.data[otherKey][groupValue] = iResult.data[otherKey];
+      insert.data[otherKey].push({
+        agg: groupValue,
+        value: iResult.data[otherKey]
+      });
     }
 
     result = auxResult;
