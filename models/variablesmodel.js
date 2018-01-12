@@ -130,7 +130,7 @@ VariablesModel.prototype.getVariablesTimeSerie = function(opts) {
       }
     }
 
-    if (bodyVarIds.indexOf(opts.filters.group)) {
+    if (bodyVarIds.indexOf(opts.filters.group) >= 0) {
       var i = bodyVarIds.indexOf(opts.filters.group);
       bodyVarIds.splice(i, 1);
     }
