@@ -91,6 +91,38 @@ VariablesFormatter.prototype.timeSerie = function(promisesResult) {
     result.push(yieldResult);
   }
 
+  if (group) {
+    var auxResult = [];
+    var currentTime;
+    var insert;
+
+    for (var iResult of result) {
+      if (currentTime !== iResult.time) {
+        if (insert != null) {
+          auxResult.push(insert);
+        }
+
+        insert = null;
+        currentTime = iResult.time;
+      }
+
+      var groupValue = iResult.data[group];
+      var otherKey = Object.keys(iResult.data).filter(x => x !== group)[0];
+
+      if (insert == null) {
+        insert = {
+          time: iResult.time,
+          data: {}
+        };
+        insert.data[otherKey] = {};
+      }
+
+      insert.data[otherKey][groupValue] = iResult.data[otherKey];
+    }
+
+    result = auxResult;
+  }
+
   return Promise.resolve(result);
 };
 
