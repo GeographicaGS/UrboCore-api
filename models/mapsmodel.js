@@ -37,17 +37,21 @@ class MapsModel extends PGSQLModel {
     return this;  // Because parent is not a strict class
   }
 
-  entitiesNow(opts) {
+  entities(opts) {
     let metaInstModel =  new MetadataInstanceModel();
     let promises = [
       metaInstModel.getEntitiesForDevicesMapByEntity(opts.scope, opts.entity),
-      metaInstModel.getAggVarFromEntity(opts.scope, opts.entity)
+      metaInstModel.getAggVarsFromEntity(opts.scope, opts.entity)
     ];
+
+    if (opts.variable) {
+      promises.push(metaInstModel.getVarQuery(opts.scope, opts.variable));
+    }
 
     return Promise.all(promises)
     .then((data) => {
       let vars = data[0].rows;
-      let aggs = data[1].rows;
+      let aggVars = data[1].rows;
 
       if (!vars.length) {
         return this.entitiesStatic(opts);
@@ -72,19 +76,37 @@ class MapsModel extends PGSQLModel {
               WHERE TRUE ${ bbox } ${ filter }
           ) ld`;
 
-      for (let i = 0; i < aggs.length; i++) {
+      for (let i = 0; i < aggVars.length; i++) {
         sql += ` LEFT JOIN (
-            SELECT id_entity, ${ aggs[i].columns.join(', ') }
+            SELECT id_entity AS id_entity_tmp, ${ aggVars[i].columns.join(', ') }
               FROM (
                 SELECT DISTINCT ON (id_entity)
-                    id_entity, ${ aggs[i].columns.join(', ') },
+                    id_entity, ${ aggVars[i].columns.join(', ') },
                     ROW_NUMBER() OVER(PARTITION BY id_entity ORDER BY "TimeInstant" DESC) AS rn
-                  FROM ${ schema }.${ aggs[i].table }
-                  WHERE "TimeInstant" < now()
+                  FROM ${ schema }.${ aggVars[i].table }
+                  WHERE "TimeInstant" <= now()
               ) s_agg${ i }
               WHERE rn = 1
           ) agg${ i }
-            ON ld.id_entity = agg${ i }.id_entity`;
+            ON ld.id_entity = agg${ i }.id_entity_tmp`;
+      }
+
+      if (opts.variable) {
+        let varData = data[2].rows[0];
+
+        sql = `SELECT *
+          FROM (
+              ${ sql }
+          ) q_entity
+            LEFT JOIN (
+              SELECT id_entity AS id_entity_tmp,
+                  ${ opts.agg }(${ varData.entity_field }) AS "${ opts.variable }"
+                FROM ${ schema }.${ varData.table_name }
+                WHERE "TimeInstant" >= '${opts.start}'::timestamp
+                  AND "TimeInstant" < '${opts.finish}'::timestamp
+                GROUP BY id_entity
+            ) q_variable
+              ON q_entity.id_entity = q_variable.id_entity_tmp`;
       }
 
       return this.promise_query(sql, null);
@@ -120,6 +142,11 @@ class MapsModel extends PGSQLModel {
       return Promise.reject(err);
     });
   }
+
+  entitiesHistoric(opts) {
+    return new MetadataInstanceModel()
+
+    }
 
 }
 

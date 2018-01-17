@@ -1000,7 +1000,7 @@ MetadataInstanceModel.prototype.getCARTOAccount = function(id_scope,id_category)
   return this.promise_query(q);
 }
 
-MetadataInstanceModel.prototype.getAggVarFromEntity = function(scope, entity) {
+MetadataInstanceModel.prototype.getAggVarsFromEntity = function(scope, entity) {
   var q = `SELECT array_agg(entity_field) AS columns, table_name AS table
       FROM metadata.variables_scopes
       WHERE id_scope = '${ scope }'

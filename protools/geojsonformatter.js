@@ -38,6 +38,7 @@ class GeoJSONFormatter extends BaseFormatter {
         let geometry = entity.geometry;
         delete entity.geometry;
         delete entity.position;
+        delete entity.id_entity_tmp;
 
         return {
           type: 'Feature',
