@@ -143,11 +143,6 @@ class MapsModel extends PGSQLModel {
     });
   }
 
-  entitiesHistoric(opts) {
-    return new MetadataInstanceModel()
-
-    }
-
 }
 
 module.exports = MapsModel;
