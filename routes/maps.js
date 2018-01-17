@@ -26,6 +26,7 @@ const utils = require('../utils.js');
 
 const log = utils.log();
 const responseValidator = utils.responseValidator;
+const timesValidator = utils.timesValidator;
 
 let router = express.Router();
 
@@ -43,12 +44,19 @@ let filtersValidator = function(req, res, next) {
   return next();
 };
 
-let entityNowResponse = function(req, res, next) {
+let variableValidator = function(req, res, next) {
+  req.checkBody('agg', 'An aggregation function for the variable').notEmpty();
+  req.checkBody('var', 'A required Urbo\'s variable').notEmpty();
+
+  return next();
+};
+
+let entityResponse = function(req, res, next) {
   let opts = req.opts || {};
   opts.scope = req.scope;
   opts.entity = req.params.entity;
 
-  new MapsModel().entitiesNow(opts)
+  new MapsModel().entities(opts)
   .then(function(data) {
     res.json(data);
   })
@@ -58,7 +66,7 @@ let entityNowResponse = function(req, res, next) {
   });
 };
 
-router.get('/:entity', entityValidator, entityNowResponse);
+router.get('/:entity', entityValidator, entityResponse);
 
 router.post('/:entity/now', entityValidator, filtersValidator,
   responseValidator, function(req, res, next) {
@@ -68,6 +76,20 @@ router.post('/:entity/now', entityValidator, filtersValidator,
     };
 
     return next();
-  }, entityNowResponse);
+  }, entityResponse);
+
+router.post('/:entity/historic', entityValidator, filtersValidator,
+  timesValidator, responseValidator, function(req, res, next) {
+    req.opts = {
+      agg: req.body.agg,
+      variable: req.body.var,
+      filters: req.body.filters || {'condition': {}},
+      start: req.body.time.start,
+      finish: req.body.time.finish,
+      bbox: req.body.filters ? req.body.filters.bbox : undefined
+    };
+
+    return next();
+  }, entityResponse);
 
 module.exports = router;
