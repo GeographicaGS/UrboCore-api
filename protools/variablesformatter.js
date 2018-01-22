@@ -21,6 +21,7 @@
 'use strict';
 
 var _ = require('underscore');
+var moment = require('moment');
 var utils = require('../utils');
 var log = utils.log();
 
@@ -97,13 +98,13 @@ VariablesFormatter.prototype.timeSerie = function(promisesResult) {
     var insert;
 
     for (var iResult of result) {
-      if (currentTime !== iResult.time) {
+      if (currentTime !== moment(iResult.time).toISOString()) {
         if (insert != null) {
           auxResult.push(insert);
         }
 
         insert = null;
-        currentTime = iResult.time;
+        currentTime = moment(iResult.time).toISOString();
       }
 
       var groupValue = iResult.data[group];
@@ -111,7 +112,7 @@ VariablesFormatter.prototype.timeSerie = function(promisesResult) {
 
       if (insert == null) {
         insert = {
-          time: iResult.time,
+          time: moment(iResult.time).toISOString(),
           data: {}
         };
         insert.data[otherKey] = [];
