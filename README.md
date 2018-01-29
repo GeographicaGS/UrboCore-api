@@ -76,7 +76,7 @@ docker-compose run api npm run-script test
 
 ## API Documentation
 
-The API documentation is available at https://geographicags.github.io/urbocore-api.
+The API documentation is available at https://geographicags.github.io/UrboCore-api/.
 
 ### Build documentation
 
