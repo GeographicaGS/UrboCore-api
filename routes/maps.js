@@ -55,6 +55,7 @@ let entityResponse = function(req, res, next) {
   let opts = req.opts || {};
   opts.scope = req.scope;
   opts.entity = req.params.entity;
+  opts.lastdataHoursInterval = parseInt(req.query.lastdataHoursInterval) || 1;
 
   new MapsModel().entities(opts)
   .then(function(data) {

@@ -4,6 +4,9 @@
 
 It returns all entities of a type as GeoJSON `FeatureCollection`.
 
+Query string's params:
+  - lastdataHoursInterval (optional): A time interval for looking into the variables tables and getting the last values in historic data. Default: 1.
+
 Path's params:
   - scope (mandatory)
   - entity (mandatory)

@@ -80,11 +80,11 @@ class MapsModel extends PGSQLModel {
         sql += ` LEFT JOIN (
             SELECT id_entity AS id_entity_tmp, ${ aggVars[i].columns.join(', ') }
               FROM (
-                SELECT DISTINCT ON (id_entity)
-                    id_entity, ${ aggVars[i].columns.join(', ') },
+                SELECT id_entity, ${ aggVars[i].columns.join(', ') },
                     ROW_NUMBER() OVER(PARTITION BY id_entity ORDER BY "TimeInstant" DESC) AS rn
                   FROM ${ schema }.${ aggVars[i].table }
-                  WHERE "TimeInstant" <= now()
+                  WHERE "TimeInstant" > now() - interval '${ opts.lastdataHoursInterval } hours'
+                    AND "TimeInstant" <= now()
               ) s_agg${ i }
               WHERE rn = 1
           ) agg${ i }
@@ -109,7 +109,7 @@ class MapsModel extends PGSQLModel {
               ON q_entity.id_entity = q_variable.id_entity_tmp`;
       }
 
-      return this.promise_query(sql, null);
+      return this.cachedQuery(sql, null);
     })
 
     .then((data) => {
@@ -135,7 +135,7 @@ class MapsModel extends PGSQLModel {
 
       let sql = `SELECT *, ST_AsGeoJSON(position) AS geometry
           FROM ${ opts.scope }.${ table }`;
-      return this.promise_query(sql, null);
+      return this.cachedQuery(sql, null);
     })
 
     .catch((err) => {
