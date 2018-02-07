@@ -165,7 +165,6 @@ VariablesModel.prototype.getVariablesTimeSerie = function(opts) {
 
     var promises = [varIds, aggs];
     for (var i in varNames) {
-
       promises.push((function() {
         var groupColumn = '';
         var groupAlias = '';
@@ -176,7 +175,7 @@ VariablesModel.prototype.getVariablesTimeSerie = function(opts) {
           groupColumn = `"${ groupBy }"`;
           groupAlias = `"${ opts.filters.group }"`;
           cGroupAlias = `, ${ groupAlias }`
-          from = `(SELECT l."TimeInstant" as "TimeInstant", l.id_entity, l."${ varNames[i] }", r.${ groupColumn } AS ${ groupAlias } FROM ${ schema }.${ tableNames[i] } l LEFT JOIN ${ schema }.${ groupTable } r ON l.id_entity = r.id_entity)`;
+          from = `(SELECT l."TimeInstant" as "TimeInstant", l.id_entity, l."${ varNames[i] }", r.${ groupColumn } AS ${ groupAlias } FROM ${ schema }.${ tableNames[i] } l LEFT JOIN ${ schema }.${ groupTable } r ON l.id_entity = r.id_entity  AND l."TimeInstant" >= r."TimeInstant" AND l."TimeInstant" < r."TimeInstant" + '${ step }')`;
         }
 
         var sql = `
@@ -192,9 +191,9 @@ VariablesModel.prototype.getVariablesTimeSerie = function(opts) {
             _timeserie AS start,
             (_timeserie + '${step}')::timestamp AS finish,
             ${aggs[i]}(foo."${varNames[i]}") AS "${varIds[i]}_${aggs[i]}"${ cGroupAlias }
-          FROM generate_series('${opts.start}'::timestamp, '${opts.finish}'::timestamp, '${step}') AS _timeserie
+          FROM generate_series('${opts.start}'::timestamp, '${opts.finish}'::timestamp, '${ step }') AS _timeserie
           LEFT JOIN ${ from } foo
-          ON foo."TimeInstant" >= _timeserie AND foo."TimeInstant" < _timeserie + '${step}'
+          ON foo."TimeInstant" >= _timeserie AND foo."TimeInstant" < _timeserie + '${ step }'
           WHERE id_entity IN (SELECT id_entity FROM filtered)
           GROUP BY _timeserie${ cGroupAlias } ORDER BY _timeserie`;
 
@@ -220,8 +219,7 @@ VariablesModel.prototype.getVariablesTimeSerie = function(opts) {
 
         return this.cachedQuery(sql);
 
-      }).bind(this)())
-
+      }).bind(this)());
     }
 
     if (groupBy) {
