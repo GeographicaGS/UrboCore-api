@@ -175,7 +175,12 @@ VariablesModel.prototype.getVariablesTimeSerie = function(opts) {
           groupColumn = `"${ groupBy }"`;
           groupAlias = `"${ opts.filters.group }"`;
           cGroupAlias = `, ${ groupAlias }`
-          from = `(SELECT l."TimeInstant" as "TimeInstant", l.id_entity, l."${ varNames[i] }", r.${ groupColumn } AS ${ groupAlias } FROM ${ schema }.${ tableNames[i] } l LEFT JOIN ${ schema }.${ groupTable } r ON l.id_entity = r.id_entity  AND l."TimeInstant" >= r."TimeInstant" AND l."TimeInstant" < r."TimeInstant" + '${ step }')`;
+          from = `(
+              SELECT l."TimeInstant" as "TimeInstant", l.id_entity, l."${ varNames[i] }", r.${ groupColumn } AS ${ groupAlias }
+                FROM ${ schema }.${ tableNames[i] } l
+                  LEFT JOIN ${ schema }.${ entityTable + '_lastdata' /* TODO: Use groupTable when variable is an aggretagated one: groupTable */ } r
+                    ON l.id_entity = r.id_entity
+            )`;
         }
 
         var sql = `
