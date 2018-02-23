@@ -550,8 +550,8 @@ MetadataInstanceModel.prototype.getScope = function(scope, user, cb) {
 
       // Preparing the parent before returning the response
       element.childs = childs;
-      delete element.zoom;
-      delete element.location;
+      // delete element.zoom;
+      // delete element.location;
       delete element.parent_id;
       delete element.categories;
 
