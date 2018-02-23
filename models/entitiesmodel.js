@@ -1,20 +1,20 @@
 // Copyright 2017 Telefónica Digital España S.L.
-// 
+//
 // This file is part of UrboCore API.
-// 
+//
 // UrboCore API is free software: you can redistribute it and/or
 // modify it under the terms of the GNU Affero General Public License as
 // published by the Free Software Foundation, either version 3 of the
 // License, or (at your option) any later version.
-// 
+//
 // UrboCore API is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero
 // General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU Affero General Public License
 // along with UrboCore API. If not, see http://www.gnu.org/licenses/.
-// 
+//
 // For those usages not covered by this license please contact with
 // iot_support at tid dot es
 
@@ -41,8 +41,8 @@ EntitiesModel.prototype.queryData = function(sql,bindings,cb) {
   this.query(sql,bindings,cb);
 }
 
-EntitiesModel.prototype.getAllElementsByDevice = function(scope,id_entity,cb) {
-  var metadata = new MetadataInstanceModel();
+EntitiesModel.prototype.getAllElementsByDevice = function(scope, id_entity, variables, cb) {
+  let metadata = new MetadataInstanceModel();
   metadata.getAllElementsByDevice(scope, id_entity, (function(err, dm) {
     if (err) {
       log.error('Cannot execute sql query');
@@ -53,32 +53,50 @@ EntitiesModel.prototype.getAllElementsByDevice = function(scope,id_entity,cb) {
       log.debug(dm);
       cb(null,null);
     } else {
-
-      var qd = `
-        SELECT
-          DISTINCT id_entity
-          FROM ${dm.rows[0].dbschema}.${dm.rows[0].entity_table_name}_lastdata
-          ORDER BY id_entity`;
-
-      this.query(qd,null,function(err,data) {
-        if (err) {
-          log.error('Cannot execute sql query');
-          log.error(qd);
-          cb(err);
+      variables.push(id_entity + '.name');
+      metadata.getVarQueryArray(scope, variables)
+      .then((dn) => {
+        var columns = [];
+        for (var variable of dn.rows) {
+          columns.push(...variable.vars);
         }
-        else if (!data.rows.length) {
-          log.debug('No rows returned from query');
-          log.debug(qd);
-          cb(null,null);
-        } else {
-          var dt = _.map(data.rows, function(obj) {
-            return {
-              'id': obj.id_entity,
-              'name': obj.id_entity //TODO: when there is a table with all device names this attribute will be changed
-            }
-          });
-          cb(null,dt);
+
+        var columnNames = '';
+        if (columns.length > 0) {
+          columnNames = ',' + columns.join(',');
         }
+
+        var qd = `
+          SELECT
+            DISTINCT id_entity${ columnNames }
+            FROM ${dm.rows[0].dbschema}.${dm.rows[0].entity_table_name}_lastdata
+            ORDER BY id_entity`;
+
+        this.query(qd,null,function(err,data) {
+          if (err) {
+            log.error('Cannot execute sql query');
+            log.error(qd);
+            cb(err);
+          } else if (!data.rows.length) {
+            log.debug('No rows returned from query');
+            log.debug(qd);
+            cb(null,null);
+          } else {
+            var dt = _.map(data.rows, function(obj) {
+              var result = {
+                'id': obj.id_entity,
+                'name': obj.id_entity
+              };
+
+              for (var column of columns) {
+                result[column] = obj[column];
+              }
+
+              return result;
+            });
+            cb(null,dt);
+          }
+        });
       });
     }
   }).bind(this));
