@@ -349,5 +349,4 @@ AuthModel.prototype.getWidgetsByTypeAndScope = function(id_scope, widget) {
   return this.promise_query(sql, [id_scope, widget]);
 }
 
-
 module.exports = AuthModel;

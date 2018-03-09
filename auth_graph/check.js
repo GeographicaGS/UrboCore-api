@@ -417,3 +417,5 @@ module.exports.checkPublishedOrCheckToken = checkPublishedOrCheckToken;
 module.exports.checkNodesFN = checkNodesFN;
 module.exports.checkNodesMiddleware = checkNodesMiddleware;
 module.exports.checkNotifierToken = checkNotifierToken;
+
+module.exports.invalidUserPassword = invalidUserPassword;
