@@ -20,14 +20,10 @@
 
 'use strict';
 
-var auth = require('../auth');
 var common = require('./common');
 var config = require('../config');
 var express = require('express');
 var router = express.Router();
-var jwt = require('jwt-simple');
-var utils = require('../utils');
-var log = utils.log();
 var check = require('./check');
 var graph = require('./graph');
 var Model = new require('./model.js');
@@ -35,16 +31,17 @@ var cfgData = config.getData();
 var OAuth2 = require('./oauth2').OAuth2;
 
 // Enable Fiware Oauth2
-var oauth = new OAuth2(cfgData.idm.client_id,
-                    cfgData.idm.client_secret,
-                    cfgData.idm.url,
-                    '/oauth2/authorize',
-                    '/oauth2/token',
-                    cfgData.idm.callback_url);
+var oauth = new OAuth2(
+  cfgData.idm.client_id,
+  cfgData.idm.client_secret,
+  cfgData.idm.url,
+  '/oauth2/authorize',
+  '/oauth2/token',
+  cfgData.idm.callback_url
+);
 
 router.post('/token/new', check.password, function(req, res, next) {
-  common.insertJwtToken(res.user, req.app.get('jwtTokenExpiration'), 
-    req.app.get('jwtTokenSecret'), function (error, data) {
+  common.insertJwtToken(res.user, req.app.get('jwtTokenExpiration'), req.app.get('jwtTokenSecret'), function (error, data) {
     if (error)
       return next(error);
 
@@ -61,16 +58,16 @@ router.get('/user/graph', check.checkToken, function(req, res, next) {
 });
 
 // Redirection to IDM authentication portal
-router.get('/idm/auth', function(req, res){
-    var path = oauth.getAuthorizeUrl(cfgData.idm.response_type);
-    res.redirect(path);
+router.get('/idm/auth', function(req, res) {
+  var path = oauth.getAuthorizeUrl(cfgData.idm.response_type);
+  res.redirect(path);
 });
 
 // Handles requests from IDM with an access code
 router.get('/idm/login', function(req, res, next) {
 
   // Using the access code goes again to the IDM to obtain the access_token
-  oauth.getOAuthAccessToken(req.query.code, function (error1, response1){
+  oauth.getOAuthAccessToken(req.query.code, function (error1, response1) {
     if (error1)
       return next(error1);
 
@@ -94,14 +91,11 @@ router.get('/idm/login', function(req, res, next) {
           delete user.users_id;
           delete user.password;
 
-          console.log(user);
+          common.insertJwtToken(user, req.app.get('jwtTokenExpiration'), req.app.get('jwtTokenSecret'), function (error4, response4) {
+            if (error4)
+              return next(error4);
 
-          common.insertJwtToken(user, req.app.get('jwtTokenExpiration'), 
-            req.app.get('jwtTokenSecret'), function (error4, response4) {
-              if (error4)
-                return next(error4);
-
-              res.json(response4);
+            res.json(response4);
           });
 
         }

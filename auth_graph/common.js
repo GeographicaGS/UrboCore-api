@@ -46,7 +46,7 @@ function insertJwtToken(user, token_expiration, token_secret, callback) {
     user: user.id,
     expires: expires,
     token: token
-  }, function(error1, data1) {
+  }, function(error1) {
     if (error1) {
       callback(new Error('Cannot store token at db'));
     }
