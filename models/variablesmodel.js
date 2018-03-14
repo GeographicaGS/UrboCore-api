@@ -976,6 +976,76 @@ VariablesModel.prototype.rankingNow = function(opts) {
   });
 };
 
+VariablesModel.prototype.rankingHistoric = function (opts) {
+  var metadata = new MetadataInstanceModel();
+  return metadata.getVarQueryArrayMultiEnt(opts.scope, opts.id_vars.join(','))
+
+  .then(function(data) {
+    return this.promiseRow(data);
+  }.bind(this))
+
+  .then(function(data) {
+
+    var dates = '';
+    if (opts.start && opts.finish) { // Both of them or nothing!
+      dates = `AND "TimeInstant" >= '${opts.start}'::timestamp AND "TimeInstant" < '${opts.finish}'::timestamp`;
+    }
+
+    var qb = new QueryBuilder(opts);
+    var filter = `${qb.bbox()} ${qb.filter()}`;
+
+    // Ordering the aggs according to the query result
+    var aggsCopy = JSON.parse(JSON.stringify(opts.agg));
+    opts.agg = _.map(data.vars_ids, function(varId) {
+      var i = opts.id_vars.indexOf(varId);
+      var agg = aggsCopy[i];
+
+      opts.id_vars.splice(i, 1);
+      aggsCopy.splice(i, 1);
+
+      return agg;
+    });
+
+    var select = null;
+    if (Array.isArray(opts.agg)) {
+      select = 'id_entity, ';
+      var i;
+      for (i = 0; i < opts.agg.length; i++) {
+        select += `${opts.agg[i]}(${data.vars[i]}) as ${data.vars[i]}, `
+      }
+      select = select.slice(0, -2);
+    } else {
+      select = `${opts.agg}($data.vars_ids[0])`;
+    }
+    var varNames = data.vars;
+
+    var i_order = data.vars_ids.indexOf(opts.var_order);
+    var order = opts.order || 'DESC';
+    var limit = opts.limit ? `LIMIT ${opts.limit}` : '';
+
+    var sql = `
+      SELECT row_to_json(row) as device FROM (
+        SELECT ${select}
+        FROM ${data.dbschema}.${data.entitytables[0]}
+        WHERE TRUE
+        ${filter}
+        ${dates}
+        AND ${data.vars[i_order]} IS NOT NULL
+        GROUP BY id_entity
+        ORDER BY ${opts.agg[i_order]}(${data.vars[i_order]}) ${order} ${limit}
+      ) row;`;
+
+    return this.cachedQuery(sql)
+  }.bind(this))
+
+  .then(function(data) {
+    return new VariablesFormatter().rankingHistoric(data);
+  })
+
+  .catch(function(err) {
+    return Promise.reject(err);
+  });
+};
 
 VariablesModel.prototype.weekSerie = function(opts) {
   var metadata = new MetadataInstanceModel();
