@@ -549,6 +549,93 @@ Response:
 ]
 ```
 
+### POST /:scope/variables/ranking/historic
+
+It returns the historic values of the requested variables ranked by a variable.
+
+- time.start: (mandatory): start of date range.
+- time.finish: (mandatory): end of date range.
+- vars: (mandatory): array of all variables ids.
+- agg: (mandatory): array of aggregations per variable. Available aggregations: ["SUM", "AVG", "MIN", "MAX", "NOAGG"]
+- var_order (mandatory): variable id for ordering.
+- order (optional): 'asc' or 'desc', default 'desc'.
+- limit (optional): an intenger for limiting the query result, default without limit.
+- bbox (optional): [lx,ly,ux,uy]
+
+Payload:
+```json
+{
+  "agg": [string],
+  "time": {
+    "start": "YYYY-MM-DDTHH:MM:SSZ",
+    "finish": "YYYY-MM-DDTHH:MM:SSZ"
+  },
+  "vars": [string],
+  "var_order": "string",
+  "order": "ASC/DESC",
+  "limit": integer,
+  "filters": {
+    "bbox": [lx, ly, ux, uy]
+  }
+}
+```
+
+Response:
+```json
+[
+  {
+    "id_entity": "string",
+    "variable1": value,
+    "variable2": value,
+    ...
+  },
+  {
+    "id_entity": "string",
+    "variable1": value,
+    "variable2": value,
+    ...
+  },
+  ...
+]
+```
+
+Example payload:
+```json
+{
+  "agg": ["sum", "avg"],
+  "vars": [
+    
+    "indoor_air.quality.tvoc",
+    "indoor_air.quality.co2"
+  ],
+  "var_order": "indoor_air.quality.tvoc",
+  "order": "desc",
+  "limit": 5,
+  "filters": {
+  },
+  "time":{
+    "start": "2000-01-01 01:00",
+    "finish": "2020-01-01 01:00"
+  }
+}
+```
+
+Example response:
+```json
+[
+    {
+        "id_entity": "device:TEST_001",
+        "co2": 230,
+        "tvoc": 3.2
+    },
+    {
+        "id_entity": "device:TEST_002",
+        "co2": 123,
+        "tvoc": 3
+    }
+]
+```
+
 ### POST /:scope/variables/:id/weekserie
 
 Payload:

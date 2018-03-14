@@ -213,5 +213,13 @@ VariablesFormatter.prototype.ranking = function(data) {
   return Promise.resolve(data.rows);
 };
 
+VariablesFormatter.prototype.rankingHistoric = function(data) {
+  var result = [];
+  for (var i = 0; i < data.rows.length; i++) {
+    result.push(data.rows[i]['device']);
+  }
+  return Promise.resolve(result);
+};
+
 
 module.exports = VariablesFormatter;
