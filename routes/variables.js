@@ -65,6 +65,42 @@ router.post('/ranking/now', rankingValidator, responseValidator, auth.validateVa
   });
 });
 
+var rankingHistoricValidator = function(req, res, next) {
+  req.checkBody('time.start', 'date, required').notEmpty().isDate();
+  req.checkBody('time.finish', 'date, required').notEmpty().isDate();
+  req.checkBody('vars', 'array, required').notEmpty().isArray();
+  req.checkBody('var_order', 'string, required').notEmpty();
+  req.checkBody('order', 'string, optional').optional().isIn(['asc', 'ASC', 'desc', 'DESC']);
+  req.checkBody('limit', 'integer, optional').optional().isInt();
+  req.checkBody('filters.bbox', 'array, optional').optional().isArray();
+  req.checkBody('filters', 'optional').optional().notEmpty();
+  req.checkBody('agg', 'aggregation required').notEmpty();
+
+  return next();
+};
+
+router.post('/ranking/historic', rankingHistoricValidator, timesValidator, responseValidator, auth.validateVariables('vars'), function(req, res, next) {
+  var opts = {
+    agg: req.body.agg,
+    scope: req.scope,
+    filters: req.body.filters,
+    id_vars: req.body.vars,
+    var_order: req.body.var_order,
+    start: req.body.time.start,
+    finish: req.body.time.finish,
+    limit: req.body.limit,
+    order: req.body.order
+  };
+
+  new VariablesModel().rankingHistoric(opts)
+  .then(function(data) {
+    res.json(data);
+  })
+  .catch(function(err) {
+    next(utils.error(err, 400));
+  });
+});
+
 var variablesTimeserieValidator = function(req, res, next) {
   if (req.method === 'POST') {
     req.checkBody('agg', 'array, required').notEmpty().isArray();
