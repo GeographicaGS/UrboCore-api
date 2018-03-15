@@ -1011,7 +1011,11 @@ VariablesModel.prototype.rankingHistoric = function (opts) {
       select = 'id_entity, ';
       var i;
       for (i = 0; i < opts.agg.length; i++) {
-        select += `${opts.agg[i]}(${data.vars[i]}) as ${data.vars[i]}, `
+        if (opts.agg[i].toUpperCase() === 'NOAGG') {
+          select += `LAST(${data.vars[i]}) as ${data.vars[i]}, `
+        } else {
+          select += `${opts.agg[i]}(${data.vars[i]}) as ${data.vars[i]}, `
+        }
       }
       select = select.slice(0, -2);
     } else {

@@ -31,6 +31,7 @@
 \ir common/CDB_QuantileBins.sql
 \ir common/urbo_utils.sql
 \ir common/urbo_size_row.sql
+\ir common/urbo_last_agg.sql
 
 -- Users graph
 \ir common/urbo_create_graph_for_scope.sql
