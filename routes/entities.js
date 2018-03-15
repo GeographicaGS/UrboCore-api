@@ -48,8 +48,9 @@ router.get('/:id/elements',function(req, res, next) {
 
 var counterValidator = function(req, res, next) {
   req.checkQuery('entities', 'required').notEmpty();
-  req.checkQuery('start', 'date, required').notEmpty().isDate();
-  req.checkQuery('finish', 'date, required').notEmpty().isDate();
+  req.checkQuery('start', 'date, required').optional().notEmpty().isDate();
+  req.checkQuery('finish', 'date, required').optional().notEmpty().isDate();
+  req.checkQuery('bbox', 'optional').optional().notEmpty();
 
   return next();
 };
