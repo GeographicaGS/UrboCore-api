@@ -8,4 +8,4 @@ $$;
 CREATE AGGREGATE public.LAST (
       sfunc    = public.last_agg,
       basetype = anyelement,
-      stype    = anyelement
+      stype    = anyelement);
