@@ -141,7 +141,8 @@ EntitiesModel.prototype._getEntityField = function(fields,v) {
 
 EntitiesModel.prototype.mapCountersEntity = function(opts,cb) {
   var bbox_sql = opts.bbox ? util.format('ST_MakeEnvelope(%s,4326)',opts.bbox):'null';
-  var sql = util.format('select id_entity as id,nfilter as filter,nall as all from entitesMapCounters (\'%s\',array[\'%s\'],%s)',opts.scope,opts.entities.join('\''),bbox_sql);
+
+  var sql = util.format('select id_entity as id,nfilter as filter,nall as all from entitesMapCounters (\'%s\',array[\'%s\'],%s,\'%s\',\'%s\')',opts.scope,opts.entities.join('\',\''),bbox_sql,opts.start,opts.finish);
 
   this.query(sql,[],function(err,data) {
     if (err)
