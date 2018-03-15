@@ -53,8 +53,10 @@ Response:
 It returns the number of elements by entities. If bbox param is specified the 'filter' value is the number of elements inside the viewport.
 
 Params:
-- entities (mandatory): comma separated array of id entities.
-- bbox (optional): bbox to filter data.
+* entities (mandatory): comma separated array of id entities.
+* bbox (optional): bbox to filter data.
+* start (optional): Start of range filter.
+* finish (optional): End of range filter.
 
 **Sample request**
 ```

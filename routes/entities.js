@@ -46,19 +46,26 @@ router.get('/:id/elements',function(req, res, next) {
   });
 });
 
+var counterValidator = function(req, res, next) {
+  req.checkQuery('entities', 'required').notEmpty();
+  req.checkQuery('start', 'date, required').optional().notEmpty().isDate();
+  req.checkQuery('finish', 'date, required').optional().notEmpty().isDate();
+  req.checkQuery('bbox', 'optional').optional().notEmpty();
 
-router.get('/map/counters',function(req, res, next) {
+  return next();
+};
+
+
+router.get('/map/counters', counterValidator, function(req, res, next) {
   var entities = req.query.entities;
 
-  if (!entities) {
-    return next(utils.error('Bad parameters',400));
-  }
-
   var opts = {
+    start: req.query.start,
+    finish: req.query.finish,
     entities: entities.split(','),
     bbox: req.query.bbox ? req.query.bbox.split(',') : null,
     scope: req.scope
-  }
+  };
 
   var em = new EntitiesModel();
   em.mapCountersEntity(opts,function(err,r) {
