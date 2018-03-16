@@ -20,58 +20,91 @@
 
 'use strict';
 
+var common = require('./common');
+var config = require('../config');
 var express = require('express');
 var router = express.Router();
-var jwt = require('jwt-simple');
-var utils = require('../utils');
-var log = utils.log();
-var moment = require('moment');
 var check = require('./check');
 var graph = require('./graph');
 var Model = new require('./model.js');
-var getPublicToken = require('./common').getPublicToken;
+var cfgData = config.getData();
+var OAuth2 = require('./oauth2').OAuth2;
+var url = require('url');
 
+// Enable Fiware Oauth2
+var oauth = new OAuth2(
+  cfgData.idm.client_id,
+  cfgData.idm.client_secret,
+  cfgData.idm.url,
+  cfgData.idm.callback_url
+);
 
 router.post('/token/new', check.password, function(req, res, next) {
+  common.insertJwtToken(res.user, req.app.get('jwtTokenExpiration'), req.app.get('jwtTokenSecret'), function (error, data) {
+    if (error)
+      return next(error);
 
-  var expires = moment().add(req.app.get('jwtTokenExpiration'),'seconds').valueOf();
-
-  var token = jwt.encode({
-    iss: res.user.id,
-    exp: expires
-  }, req.app.get('jwtTokenSecret'));
-
-  // store token at db
-  var m = new Model();
-  m.addToken({
-    user: res.user.id,
-    expires: expires,
-    token: token
-  }, function(err,data) {
-    if (err) {
-      return next(new Error('Cannot store token at db'));
-    }
-
-    graph.getUserGraph(res.user.id,function(err,data) {
-      if (err)
-        return next(err);
-      res.json({
-        token : token,
-        expires: expires,
-        user: res.user,
-        graph: data
-      });
-    });
-
+    res.json(data);
   });
 });
 
 router.get('/user/graph', check.checkToken, function(req, res, next) {
-
   graph.getUserGraph(res.user.id,function(err,data) {
     if (err)
       return next(err);
     res.json(data);
+  });
+});
+
+// Redirection to IDM authentication portal
+router.get('/idm/auth', check.checkCallBack, function(req, res) {
+  var path = oauth.getAuthorizeUrl(cfgData.idm.response_type, req.query.cb);
+  res.redirect(path);
+});
+
+// Handles requests from IDM with an access code
+router.get('/idm/login', function(req, res, next) {
+
+  // Using the access code goes again to the IDM to obtain the access_token
+  oauth.getOAuthAccessToken(req.query.code, function (error1, response1) {
+    if (error1)
+      return next(error1);
+
+    var access_token = response1.access_token;
+
+    oauth.get(cfgData.idm.url + '/user/', access_token, function (error2, response2) {
+      if (error2)
+        return next(error2);
+
+      var email = JSON.parse(response2).email;
+
+      var m = new Model();
+      m.getUserByEmail(email, function (error3, response3) {
+        if (error3 || !response3.rows.length)
+          return next(check.invalidUserPassword());
+
+        if (response3 && response3.rows && response3.rows.length) {
+
+          var user = response3.rows[0];
+          user.id = user.users_id;
+          delete user.users_id;
+          delete user.password;
+
+          common.insertJwtToken(user, req.app.get('jwtTokenExpiration'), req.app.get('jwtTokenSecret'), function (error4, response4) {
+            if (error4)
+              return next(error4);
+
+            res.redirect(url.format({
+              pathname: req.query.state,
+              query: JSON.stringify(response4),
+            }));
+          });
+
+        }
+
+      });
+
+    });
   });
 });
 
