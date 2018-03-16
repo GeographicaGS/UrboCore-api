@@ -31,14 +31,6 @@ var cfgData = config.getData();
 var OAuth2 = require('./oauth2').OAuth2;
 var url = require('url');
 
-// Enable Fiware Oauth2
-var oauth = new OAuth2(
-  cfgData.idm.client_id,
-  cfgData.idm.client_secret,
-  cfgData.idm.url,
-  cfgData.idm.callback_url
-);
-
 router.post('/token/new', check.password, function(req, res, next) {
   common.insertJwtToken(res.user, req.app.get('jwtTokenExpiration'), req.app.get('jwtTokenSecret'), function (error, data) {
     if (error)
@@ -56,14 +48,30 @@ router.get('/user/graph', check.checkToken, function(req, res, next) {
   });
 });
 
+// Enable Fiware Oauth2
+if (cfgData.auth.idm_active) {
+  var oauth = new OAuth2(
+    cfgData.idm.client_id,
+    cfgData.idm.client_secret,
+    cfgData.idm.url,
+    cfgData.idm.callback_url
+  );
+}
+
 // Redirection to IDM authentication portal
-router.get('/idm/auth', check.checkCallBack, function(req, res) {
+router.get('/idm/auth', function(req, res) {
+  if (!cfgData.auth.idm_active) {
+    res.sendStatus(404);
+  }
   var path = oauth.getAuthorizeUrl(cfgData.idm.response_type, req.query.cb);
   res.redirect(path);
 });
 
 // Handles requests from IDM with an access code
 router.get('/idm/login', function(req, res, next) {
+  if (!cfgData.auth.idm_active) {
+    res.sendStatus(404);
+  }
 
   // Using the access code goes again to the IDM to obtain the access_token
   oauth.getOAuthAccessToken(req.query.code, function (error1, response1) {

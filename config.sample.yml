@@ -74,6 +74,7 @@ auth:
   token_secret: XXXX
   # Optional: token expiration in seconds. Default to 60.
   token_expiration: 600
+  idm_active: TRUE|FALSE
 
 notifier:
   token_secret: XXXXX
