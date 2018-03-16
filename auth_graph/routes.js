@@ -29,14 +29,13 @@ var graph = require('./graph');
 var Model = new require('./model.js');
 var cfgData = config.getData();
 var OAuth2 = require('./oauth2').OAuth2;
+var url = require('url');
 
 // Enable Fiware Oauth2
 var oauth = new OAuth2(
   cfgData.idm.client_id,
   cfgData.idm.client_secret,
   cfgData.idm.url,
-  '/oauth2/authorize',
-  '/oauth2/token',
   cfgData.idm.callback_url
 );
 
@@ -58,8 +57,8 @@ router.get('/user/graph', check.checkToken, function(req, res, next) {
 });
 
 // Redirection to IDM authentication portal
-router.get('/idm/auth', function(req, res) {
-  var path = oauth.getAuthorizeUrl(cfgData.idm.response_type);
+router.get('/idm/auth', check.checkCallBack, function(req, res) {
+  var path = oauth.getAuthorizeUrl(cfgData.idm.response_type, req.query.cb);
   res.redirect(path);
 });
 
@@ -95,7 +94,10 @@ router.get('/idm/login', function(req, res, next) {
             if (error4)
               return next(error4);
 
-            res.json(response4);
+            res.redirect(url.format({
+              pathname: req.query.state,
+              query: JSON.stringify(response4),
+            }));
           });
 
         }

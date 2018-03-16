@@ -181,6 +181,15 @@ function checkToken(req,res,next) {
   }
 }
 
+function checkCallback(req, res, next) {
+  if (!req.query.cb) {
+    var error = new Error('Invalid parameters');
+    error.status = 422;
+    return next(error);
+  } else {
+    next();
+  }
+}
 
 function checkPublishedOrCheckToken(req, res, next) {
   var publicToken = (req.body && req.body.access_token_public) || (req.query && req.query.access_token_public) || req.headers['x-access-token-public'];
@@ -414,5 +423,6 @@ module.exports.checkPublishedOrCheckToken = checkPublishedOrCheckToken;
 module.exports.checkNodesFN = checkNodesFN;
 module.exports.checkNodesMiddleware = checkNodesMiddleware;
 module.exports.checkNotifierToken = checkNotifierToken;
+module.exports.checkCallback = checkCallback;
 
 module.exports.invalidUserPassword = invalidUserPassword;

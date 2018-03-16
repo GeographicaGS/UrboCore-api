@@ -25,12 +25,12 @@ var https = require('https');
 var http = require('http');
 var URL = require('url');
 
-exports.OAuth2 = function(client_id, client_secret, base_site, authorize_path, access_token_path, callback_url, custom_headers) {
+exports.OAuth2 = function(client_id, client_secret, base_site, callback_url, custom_headers) {
   this.client_id = client_id;
   this.client_secret = client_secret;
   this.base_site = base_site;
-  this.authorize_url = authorize_path || '/oauth2/authorize';
-  this.access_token_url = access_token_path || '/oauth2/token';
+  this.authorize_url = '/oauth2/authorize';
+  this.access_token_url = '/oauth2/token';
   this.callback_url = callback_url;
   this.access_token_name = 'access_token';
   this.auth_method = 'Basic';
@@ -137,9 +137,18 @@ exports.OAuth2.prototype.executeRequest= function( http_library, options, post_b
   request.end();  
 }
 
-exports.OAuth2.prototype.getAuthorizeUrl= function(response_type) {
+exports.OAuth2.prototype.getAuthorizeUrl= function(response_type, redirection) {
   response_type = response_type || 'code';
-  return this.base_site + this.authorize_url + '?response_type=' + response_type + '&client_id=' + this.client_id +  '&state=xyz&redirect_uri=' + this.callback_url;
+  var result = URL.format({
+    pathname: this.base_site + this.authorize_url,
+    query: {
+      response_type: response_type,
+      client_id: this.client_id,
+      redirect_uri: this.callback_url,
+      state: redirection
+    }
+  });
+  return result;
 }
 
 exports.OAuth2.prototype.getOAuthAccessToken= function(code, callback) {
