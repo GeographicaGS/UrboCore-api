@@ -25,19 +25,21 @@
 
 --TODO: rename function with urbo prefix
 
-
-DROP FUNCTION IF EXISTS entitesMapCounters(text,text[],geometry);
+DROP FUNCTION IF EXISTS entitesMapCounters(text, text[], geometry, text, text);
+DROP FUNCTION IF EXISTS entitesMapCounters(text, text[], geometry);
 DROP TYPE IF EXISTS tEntitesMapCounters;
 CREATE TYPE tEntitesMapCounters as (id_entity text, nfilter integer,nall integer);
 
-CREATE OR REPLACE FUNCTION entitesMapCounters(scope text,entities text[],bbox geometry)
+CREATE OR REPLACE FUNCTION entitesMapCounters(scope text, entities text[], bbox geometry, start text, finish text)
   RETURNS setof tEntitesMapCounters AS
 $$
 DECLARE
   r tEntitesMapCounters;
+  date_filter text;
   row RECORD;
   sql text;
 BEGIN
+
   FOR row in SELECT table_name,id_entity
               FROM metadata.entities_scopes
               WHERE id_entity=ANY(entities)
@@ -49,11 +51,21 @@ BEGIN
 
     r.id_entity = row.id_entity;
 
-    if bbox is not null then
+    IF start IS NOT NULL AND finish IS NOT NULL THEN 
+      date_filter = FORMAT(' AND "TimeInstant" >= $2::timestamp AND "TimeInstant" < $3::timestamp', start, finish);
+    ELSE 
+      date_filter = '';
+    END IF;
+
+    IF bbox IS NOT NULL AND start IS NOT NULL AND finish IS NOT NULL THEN
+      EXECUTE sql||' WHERE position && $1 AND "TimeInstant" >= $2::timestamp AND "TimeInstant" < $3::timestamp' INTO r.nfilter USING bbox, start, finish;
+    ELSIF bbox IS NOT NULL THEN
       EXECUTE sql||' WHERE position && $1' INTO r.nfilter USING bbox;
-    else
+    ELSIF start IS NOT NULL AND finish IS NOT NULL THEN
+      EXECUTE sql||' WHERE "TimeInstant" >= $1::timestamp AND "TimeInstant" < $2::timestamp' INTO r.nfilter USING start, finish;
+    ELSE
       r.nfilter = r.nall;
-    end if;
+    END IF;
 
     return next r;
 
