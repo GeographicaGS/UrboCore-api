@@ -60,7 +60,7 @@ Params:
 
 **Sample request**
 ```
-GET /scope/entities/map/counters?entities=vertical.category.variable&bbox=-180,-90,-150,30
+GET /scope/entities/map/counters?entities=vertical.category.variable&bbox=-180,-90,-150,30&start=2000-01-01T00:00&finish=2020-01-01T00:00
 ```
 
 Response:
@@ -68,7 +68,7 @@ Response:
 [
   {
     "id": "vertical.category.variable",
-    "filter": 0,
+    "filter": 2320,
     "all": 8515
   }
 ]
