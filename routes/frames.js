@@ -40,6 +40,23 @@ router.get('/', function (req, res, next) {
     });
 });
 
+router.post('/filter', function (req, res, next) {
+  var opts = {
+    scope: req.scope,
+    type: req.body.type,
+    vertical: req.body.vertical
+  };
+
+  var model = new FramesModel();
+  model.getFramesByVertical(opts)
+    .then(function (data) {
+      res.json(data);
+    })
+    .catch(function (err) {
+      next(err);
+    });
+});
+
 router.get('/:id', function (req, res, next) {
   var opts = {
     id: req.params.id
