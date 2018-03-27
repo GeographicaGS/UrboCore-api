@@ -6,10 +6,12 @@ Returns all frames for a scope.
 
 Path's params:
 	- `scope` (mandatory).
+  - `type` (optional).
+  - `vertical` (optional).
 
 Example Request URL
 ```text
-/aljarafe/frames
+/aljarafe/frames?type=cityanalytics
 ```
 
 Example Response
@@ -22,63 +24,11 @@ Example Response
       "description":"Traffic intensity and Air Quality  datasets integrated in a single map ",
       "source":"CARTO",
       "datatype":"now",
-      "type": FALSE,
+      "type": "cityanalytics",
       "vertical": NULL
    }
 ]
 ```
-
-### POST /:scope/frames/filter
-
-Return all frames for a scope, and a certain type and vertical.
-
-Path's params:
-  - `scope` (mandatory).
-
-Payload
-```json
-{
-  "type": boolean (mandatory),
-  "vertical": string (optional, mandatory if type set to TRUE)
-}
-```
-
-Example Request URL
-```text
-/aljarafe/frames/filter
-```
-
-Example Payload 1
-```json
-{
-  "type": TRUE,
-  "vertical": "environment"
-}
-```
-
-Example Payload 2
-```json
-{
-  "type": FALSE
-}
-```
-
-Example Response
-```json
-[
-   {
-      "id":"1",
-      "url":"https://xxxx/xxxx/embed",
-      "title":"Traffic intensity, Air Quality in Trento",
-      "description":"Traffic intensity and Air Quality  datasets integrated in a single map ",
-      "source":"CARTO",
-      "datatype":"now",
-      "type": FALSE,
-      "vertical": NULL
-   }
-]
-```
-
 
 ### GET /:scope/frames/:id
 
@@ -102,7 +52,7 @@ Example Response
   "description":"Traffic intensity and Air Quality  datasets integrated in a single map ",
   "source":"CARTO",
   "datatype":"now",
-  "type": FALSE,
+  "type": "cityanalytics",
   "vertical": NULL
 }
 ```
@@ -122,8 +72,8 @@ Payload
  "description": string,
  "source": string,
  "datatype": string ("historic"/"now"),
- "type": boolean
- "vertical": string (optional, mandatory if type is set to TRUE)
+ "type": string ("cityanalytics"/"scope"/"vertical"),
+ "vertical": string (optional, mandatory if type is set to 'vertical')
 }
 ```
 
@@ -140,7 +90,7 @@ Example payload
  "description": "Descripción de frame",
  "source": "CARTO",
  "datatype": "now",
- "type": FALSE,
+ "type": "cityanalytics",
  "vertical": NULL
 }
 ```
@@ -161,7 +111,7 @@ Payload
  "description": string,
  "source": string,
  "datatype": string ("historic"/"now"),
- "type": boolean,
+ "type": string ("cityanalytics"/"scope"/"vertical"),
  "vertical": string (optional, mandatory if type is set to TRUE)
 }
 ```
@@ -179,8 +129,8 @@ Example payload
  "description": "Descripción de frame",
  "source": "CARTO",
  "datatype": "now",
- "type": FALSE,
- "vertical": NULL
+ "type": "vertical",
+ "vertical": "environment"
 }
 ```
 

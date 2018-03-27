@@ -29,28 +29,16 @@ class FramesModel extends PGSQLModel {
     return this;
   }
 
-  getFramesList (opts) {
+  getFrames (opts) {
+
+    var type_filer = opts.type ? `AND type = '${opts.type}'` : '';
+    var vertical_filter = opts.vertical ? `AND vertical = '${opts.vertical}'` : '';
+
     var sql = `SELECT id, url, title, description, source, datatype, type, vertical
       FROM public.frames_scope
       WHERE scope_id = '${opts.scope}'
-      ORDER BY id`;
-
-    return this.promise_query(sql)
-      .then(function (data) {
-        return Promise.resolve(data.rows);  // TODO: Think of returning a 404 if it fails
-      }.bind(this))
-      .catch(function (error) {
-        log.error(error);
-        return Promise.reject(error);
-      });
-  }
-
-  getFramesByVertical (opts) {
-    var vertical = opts.vertical ? `'${opts.vertical}'` : 'NULL';
-
-    var sql = `SELECT id, url, title, description, source, datatype, type, vertical
-      FROM public.frames_scope
-      WHERE scope_id = '${opts.scope}' AND type=${opts.type} AND vertical=${vertical}
+      ${type_filer}
+      ${vertical_filter}
       ORDER BY id`;
 
     return this.promise_query(sql)
@@ -83,7 +71,7 @@ class FramesModel extends PGSQLModel {
     var vertical = opts.vertical ? `'${opts.vertical}'` : 'NULL';
 
     var sql = `INSERT INTO public.frames_scope (title, url, description, source, datatype, type, vertical, scope_id)
-      VALUES ('${opts.title}', '${opts.url}', '${opts.description}', '${opts.source}', '${opts.datatype}', ${opts.type}, ${vertical}, '${opts.scope}')`;
+      VALUES ('${opts.title}', '${opts.url}', '${opts.description}', '${opts.source}', '${opts.datatype}', '${opts.type}', ${vertical}, '${opts.scope}')`;
 
     return this.promise_query(sql)
       .then(function (data) {
@@ -105,7 +93,7 @@ class FramesModel extends PGSQLModel {
       description = '${opts.description}',
       source = '${opts.source}',
       datatype = '${opts.datatype}',
-      type = ${opts.type},
+      type = '${opts.type}',
       vertical = ${vertical},
       scope_id = '${opts.scope}'
       WHERE id = ${opts.id}`;

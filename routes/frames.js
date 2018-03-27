@@ -27,28 +27,13 @@ var FramesModel = require('../models/framesmodel');
 
 router.get('/', function (req, res, next) {
   var opts = {
-    scope: req.scope
+    scope: req.scope,
+    type: req.params.type,
+    vertical: req.params.vertical
   };
 
   var model = new FramesModel();
   model.getFramesList(opts)
-    .then(function (data) {
-      res.json(data);
-    })
-    .catch(function (err) {
-      next(err);
-    });
-});
-
-router.post('/filter', function (req, res, next) {
-  var opts = {
-    scope: req.scope,
-    type: req.body.type,
-    vertical: req.body.vertical
-  };
-
-  var model = new FramesModel();
-  model.getFramesByVertical(opts)
     .then(function (data) {
       res.json(data);
     })
