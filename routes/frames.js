@@ -27,11 +27,13 @@ var FramesModel = require('../models/framesmodel');
 
 router.get('/', function (req, res, next) {
   var opts = {
-    scope: req.scope
+    scope: req.scope,
+    type: req.query.type || 'cityanalytics',
+    vertical: req.query.vertical
   };
 
   var model = new FramesModel();
-  model.getFramesList(opts)
+  model.getFrames(opts)
     .then(function (data) {
       res.json(data);
     })
