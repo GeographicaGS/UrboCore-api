@@ -31,13 +31,12 @@ class FramesModel extends PGSQLModel {
 
   getFrames (opts) {
 
-    var type_filer = opts.type ? `AND type = '${opts.type}'` : `AND type = 'cityanalytics'`;
     var vertical_filter = opts.vertical ? `AND vertical = '${opts.vertical}'` : '';
 
     var sql = `SELECT id, url, title, description, source, datatype, type, vertical
       FROM public.frames_scope
       WHERE scope_id = '${opts.scope}'
-      ${type_filer}
+      AND type = '${opts.type}'
       ${vertical_filter}
       ORDER BY id`;
 

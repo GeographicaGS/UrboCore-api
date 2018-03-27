@@ -1,3 +1,4 @@
+DROP TYPE IF EXISTS frame_type;
 CREATE TYPE frame_type AS ENUM ('cityanalytics', 'scope', 'vertical');
 CREATE TABLE IF NOT EXISTS public.frames_scope (
 	id bigint PRIMARY KEY,
