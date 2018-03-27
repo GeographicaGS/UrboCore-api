@@ -46,12 +46,7 @@ class FramesModel extends PGSQLModel {
   }
 
   getFramesByVertical (opts) {
-
-    if (opts.vertical) {
-      var vertical = `'${opts.vertical}'`;
-    } else {
-      var vertical = `NULL`;
-    }
+    var vertical = opts.vertical ? `'${opts.vertical}'` : 'NULL';
 
     var sql = `SELECT id, url, title, description, source, datatype, type, vertical
       FROM public.frames_scope
@@ -85,11 +80,7 @@ class FramesModel extends PGSQLModel {
 
   createFrame (opts) {
 
-    if (opts.vertical) {
-      var vertical = `'${opts.vertical}'`;
-    } else {
-      var vertical = `NULL`;
-    }
+    var vertical = opts.vertical ? `'${opts.vertical}'` : 'NULL';
 
     var sql = `INSERT INTO public.frames_scope (title, url, description, source, datatype, type, vertical, scope_id)
       VALUES ('${opts.title}', '${opts.url}', '${opts.description}', '${opts.source}', '${opts.datatype}', ${opts.type}, ${vertical}, '${opts.scope}')`;
@@ -106,11 +97,7 @@ class FramesModel extends PGSQLModel {
 
   updateFrame (opts) {
 
-    if (opts.vertical) {
-      var vertical = `'${opts.vertical}'`;
-    } else {
-      var vertical = `NULL`;
-    }
+    var vertical = opts.vertical ? `'${opts.vertical}'` : 'NULL';
 
     var sql = `UPDATE public.frames_scope SET
       title = '${opts.title}',
