@@ -31,7 +31,7 @@ class FramesModel extends PGSQLModel {
 
   getFrames (opts) {
 
-    var type_filer = opts.type ? `AND type = '${opts.type}'` : '';
+    var type_filer = opts.type ? `AND type = '${opts.type}'` : `AND type = 'cityanalytics'`;
     var vertical_filter = opts.vertical ? `AND vertical = '${opts.vertical}'` : '';
 
     var sql = `SELECT id, url, title, description, source, datatype, type, vertical
