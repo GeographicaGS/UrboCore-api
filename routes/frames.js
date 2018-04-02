@@ -44,6 +44,7 @@ router.get('/', function (req, res, next) {
 
 router.get('/:id', function (req, res, next) {
   var opts = {
+    scope: req.scope,
     id: req.params.id
   };
 
@@ -58,7 +59,16 @@ router.get('/:id', function (req, res, next) {
 });
 
 router.post('/', auth.protectSuperAdmin, function (req, res, next) {
-  var opts = req.body;
+  var opts = {
+    scope: req.scope,
+    title: req.body.title, 
+    url: req.body.url,
+    description: req.body.description,
+    source: req.body.source,
+    datatype: req.body.datatype,
+    type: req.body.type, 
+    vertical: req.body.vertical
+  };
 
   var model = new FramesModel();
   model.createFrame(opts)
