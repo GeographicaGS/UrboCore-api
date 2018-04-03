@@ -118,14 +118,14 @@ router.get('/idm/login', function(req, res, next) {
 
 // Extended Graph for Oauth
 router.get('/user/graph_oauth', check.checkToken, function(req, res, next) {
- graph.getUserGraph(res.user.id,function(err,data) {
-   if (err)
-     return next(err);
-   res.json({
-     graph: data,
-     user: res.user
-   });
- });
+  graph.getUserGraph(res.user.id,function(err,data) {
+    if (err)
+      return next(err);
+    res.json({
+      graph: data,
+      user: res.user
+    });
+  });
 });
 
 module.exports = router;
