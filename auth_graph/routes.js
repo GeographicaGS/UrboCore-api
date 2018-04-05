@@ -104,7 +104,7 @@ router.get('/idm/login', function(req, res, next) {
 
             res.redirect(url.format({
               pathname: req.query.state,
-              query: JSON.stringify(response4),
+              query: {'token': response4.token, 'expires' : response4.expires}
             }));
           });
 
@@ -112,6 +112,18 @@ router.get('/idm/login', function(req, res, next) {
 
       });
 
+    });
+  });
+});
+
+// Extended Graph for Oauth
+router.get('/user/graph_oauth', check.checkToken, function(req, res, next) {
+  graph.getUserGraph(res.user.id,function(err,data) {
+    if (err)
+      return next(err);
+    res.json({
+      graph: data,
+      user: res.user
     });
   });
 });
