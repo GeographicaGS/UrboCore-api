@@ -49,9 +49,19 @@ VariablesFormatter.prototype.timeSerie = function(promisesResult) {
     template[varId] = template[varId] === undefined ? 0 : [];
   }
 
+  var timeColumnIndex = 0;
+  var auxTime = new Date('3999-31-12T23:59:59Z');
+  for (var i = 0; i < columns.length; i++) {
+    var auxTime2 = promisesResult[i].rows[0].start;
+    if (auxTime2 < auxTime) {
+      timeColumnIndex = i;
+      auxTime = auxTime2;
+    }
+  }
+
   var result = [];
   for (var i = 0; i < rowsNumber; i++) {
-    var time = promisesResult[0].rows[i].start;
+    var time = promisesResult[timeColumnIndex].rows[i].start;
     var yieldResult = {
       time: time,
       data: JSON.parse(JSON.stringify(template))
@@ -62,8 +72,16 @@ VariablesFormatter.prototype.timeSerie = function(promisesResult) {
         yieldResult.data[group] = promisesResult[j].rows[i][group];
       }
 
-      var value = promisesResult[j].rows[i][columns[j]];
-      var times = promisesResult[j].rows[i].times;
+      var value;
+      var times;
+      if (promisesResult[j].rows[i].start.toString() !== time.toString()) {
+        promisesResult[j].rows.splice(i, 0, null);
+        value = null;
+
+      } else {
+        value = promisesResult[j].rows[i][columns[j]];
+        times = promisesResult[j].rows[i].times;
+      }
 
       if (yieldResult.data[varIds[j]].constructor === Array) {
         var subYieldResult = {
