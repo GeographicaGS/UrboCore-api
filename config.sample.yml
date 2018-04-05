@@ -74,6 +74,7 @@ auth:
   token_secret: XXXX
   # Optional: token expiration in seconds. Default to 60.
   token_expiration: 600
+  idm_active: TRUE|FALSE
 
 notifier:
   token_secret: XXXXX
@@ -117,3 +118,10 @@ carto:
 microstrategy:
   tokenRenew: 20 #minutes
   apiUrl: "https://xxxxxxxxxxxxxxxxxxxx"
+
+idm:
+  client_id: xxxxxxxxxxxxxxxxxxxx
+  client_secret: xxxxxxxxxxxxxxxxxxxx
+  url: http://idm.cedus.eu/
+  response_type: code
+  callback_url: http://localhost/auth/idm/login

@@ -24,8 +24,6 @@ var router = require('express').Router();
 var jwt = require('jwt-simple');
 var _ = require('underscore');
 var utils = require('../utils');
-var log = utils.log();
-var utils = require('../utils');
 var responseValidator = utils.responseValidator;
 var Model = require('./model.js');
 
@@ -57,15 +55,13 @@ router.get('/:widget', function(req, res, next) {
     scope: req.scope,
     widget: req.params.widget
   }
-  new Model().getWidgetsByTypeAndScope(req.scope, req.params.widget)
-  .then(function(d) {
+  new Model().getWidgetsByTypeAndScope(req.scope, req.params.widget).then(function(d) {
     res.status(200).json(d.rows);
-  })
-  .catch(function(err) {
+  }).catch(function(err) {
     var error = new Error(err);
     error.status = 400;
     return next(error);
-  })
+  });
 });
 
 
@@ -115,13 +111,9 @@ router.post('/',
       data: {}
     })
 
-
-
-    new Model().publishWidget(opts)
-    .then(function(data) {
+    new Model().publishWidget(opts).then(function(data) {
       res.status(201).json(data.rows[0]);
-    })
-    .catch(function(err) {
+    }).catch(function(err) {
       res.status(400).json(err);
     });
   });
@@ -135,11 +127,9 @@ router.delete('/:id',
   unpublishValidator,
   responseValidator,
   function(req, res, next) {
-    new Model().unpublishWidget(req.params.id)
-    .then(function(data) {
+    new Model().unpublishWidget(req.params.id).then(function(data) {
       res.status(200).json(data);
-    })
-    .catch(function(err) {
+    }).catch(function(err) {
       res.status(400).json(err);
     });
   });

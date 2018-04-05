@@ -53,12 +53,14 @@ Response:
 It returns the number of elements by entities. If bbox param is specified the 'filter' value is the number of elements inside the viewport.
 
 Params:
-- entities (mandatory): comma separated array of id entities.
-- bbox (optional): bbox to filter data.
+* entities (mandatory): comma separated array of id entities.
+* bbox (optional): bbox to filter data.
+* start (optional): Start of range filter.
+* finish (optional): End of range filter.
 
 **Sample request**
 ```
-GET /scope/entities/map/counters?entities=vertical.category.variable&bbox=-180,-90,-150,30
+GET /scope/entities/map/counters?entities=vertical.category.variable&bbox=-180,-90,-150,30&start=2000-01-01T00:00&finish=2020-01-01T00:00
 ```
 
 Response:
@@ -66,7 +68,7 @@ Response:
 [
   {
     "id": "vertical.category.variable",
-    "filter": 0,
+    "filter": 2320,
     "all": 8515
   }
 ]

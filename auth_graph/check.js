@@ -181,6 +181,15 @@ function checkToken(req,res,next) {
   }
 }
 
+function checkCallback(req, res, next) {
+  if (!req.query.cb) {
+    var error = new Error('Invalid parameters');
+    error.status = 422;
+    return next(error);
+  } else {
+    next();
+  }
+}
 
 function checkPublishedOrCheckToken(req, res, next) {
   var publicToken = (req.body && req.body.access_token_public) || (req.query && req.query.access_token_public) || req.headers['x-access-token-public'];
@@ -192,11 +201,9 @@ function checkPublishedOrCheckToken(req, res, next) {
     }
 
     var m = new model();
-    m.getWidgetByToken(publicToken)
-    .then(function(data) {
+    m.getWidgetByToken(publicToken).then(function(data) {
       return m.promiseRow(data);
-    })
-    .then(function(stored) {
+    }).then(function(stored) {
       // Only first ocurrence per widget (url)
       // var stored = data.rows[0];
       var validRequest = _.findWhere(stored.payload, {'url': requested.url});
@@ -219,8 +226,7 @@ function checkPublishedOrCheckToken(req, res, next) {
         return next(error);
       }
 
-    })
-    .catch(function(err) {
+    }).catch(function(err) {
       log.error(err);
       var error = new Error('Invalid token');
       error.status = 403;
@@ -259,7 +265,6 @@ function processNodes(user_id,ops,nodes) {
 }
 /*
 // function node(node,ops){
-//
 //   ops = ops || ['read'];
 //   return function(req,res,next){
 //     // First check the token
@@ -313,6 +318,7 @@ function processNodes(user_id,ops,nodes) {
 //   }
 // }
 */
+
 /*
 For a list of nodes it returns the nodes who are actually allowed for the current user.
 Params:
@@ -417,3 +423,6 @@ module.exports.checkPublishedOrCheckToken = checkPublishedOrCheckToken;
 module.exports.checkNodesFN = checkNodesFN;
 module.exports.checkNodesMiddleware = checkNodesMiddleware;
 module.exports.checkNotifierToken = checkNotifierToken;
+module.exports.checkCallback = checkCallback;
+
+module.exports.invalidUserPassword = invalidUserPassword;

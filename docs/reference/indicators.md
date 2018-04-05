@@ -26,7 +26,7 @@ Returns the indicators list for a date (month).
 Params:
 
 * `time.start`: Mandatory. Its important parts are the year and the month.
-* `langauge`: Optional. Default: `es`. Availables: `es` and `en`.
+* `language`: Optional. Default: `es`. Availables: `es` and `en`.
 * `format`: Optional. If its value is `csv` it will return a CSV file.
 
 **Sample request**

@@ -27,11 +27,13 @@ var FramesModel = require('../models/framesmodel');
 
 router.get('/', function (req, res, next) {
   var opts = {
-    scope: req.scope
+    scope: req.scope,
+    type: req.query.type || 'cityanalytics',
+    vertical: req.query.vertical
   };
 
   var model = new FramesModel();
-  model.getFramesList(opts)
+  model.getFrames(opts)
     .then(function (data) {
       res.json(data);
     })
@@ -42,6 +44,7 @@ router.get('/', function (req, res, next) {
 
 router.get('/:id', function (req, res, next) {
   var opts = {
+    scope: req.scope,
     id: req.params.id
   };
 
@@ -56,7 +59,16 @@ router.get('/:id', function (req, res, next) {
 });
 
 router.post('/', auth.protectSuperAdmin, function (req, res, next) {
-  var opts = req.body;
+  var opts = {
+    scope: req.scope,
+    title: req.body.title, 
+    url: req.body.url,
+    description: req.body.description,
+    source: req.body.source,
+    datatype: req.body.datatype,
+    type: req.body.type, 
+    vertical: req.body.vertical
+  };
 
   var model = new FramesModel();
   model.createFrame(opts)
@@ -69,8 +81,17 @@ router.post('/', auth.protectSuperAdmin, function (req, res, next) {
 });
 
 router.put('/:id', auth.protectSuperAdmin, function (req, res, next) {
-  var opts = req.body;
-  opts.id = req.params.id;
+  var opts = {
+    scope: req.scope,
+    id: req.params.id,
+    title: req.body.title, 
+    url: req.body.url,
+    description: req.body.description,
+    source: req.body.source,
+    datatype: req.body.datatype,
+    type: req.body.type, 
+    vertical: req.body.vertical
+  };
 
   var model = new FramesModel();
   model.updateFrame(opts)

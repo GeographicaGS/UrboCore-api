@@ -69,7 +69,7 @@ CREATE OR REPLACE FUNCTION urbo_categories_ddl(
           );
 
         INSERT INTO metadata.entities_scopes (SELECT DISTINCT %L, e.* FROM metadata.entities e where id_category=''%s'');
-        INSERT INTO metadata.variables_scopes (SELECT DISTINCT %L, v.* FROM metadata.variables v where id_entity like ''%s%%'');
+        INSERT INTO metadata.variables_scopes (SELECT DISTINCT %L, v.* FROM metadata.variables v where id_entity like ''%s'');
 
         SELECT urbo_createtables_%s(%L, ''%s'');',
         id_scope, category, category_name,

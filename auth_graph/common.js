@@ -21,8 +21,10 @@
 'use strict';
 
 var config = require('../config');
+var graph = require('./graph');
 var jwt = require('jwt-simple');
-
+var Model = new require('./model.js');
+var moment = require('moment');
 
 function getPublicToken(opts) {
   var secret = config.getData().auth.token_secret;
@@ -30,5 +32,39 @@ function getPublicToken(opts) {
   return token;
 }
 
+function insertJwtToken(user, token_expiration, token_secret, callback) {
+  var expires = moment().add(token_expiration,'seconds').valueOf();
+
+  var token = jwt.encode({
+    iss: user.id,
+    exp: expires
+  }, token_secret);
+
+  // store token at db
+  var m = new Model();
+  m.addToken({
+    user: user.id,
+    expires: expires,
+    token: token
+  }, function(error1) {
+    if (error1) {
+      callback(new Error('Cannot store token at db'));
+    }
+
+    graph.getUserGraph(user.id,function(error2, data2) {
+      if (error2)
+        callback(error2);
+
+      callback(null, {
+        token : token,
+        expires: expires,
+        user: user,
+        graph: data2
+      });
+    });
+
+  });
+}
 
 module.exports.getPublicToken = getPublicToken;
+module.exports.insertJwtToken = insertJwtToken;
