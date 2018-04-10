@@ -83,7 +83,7 @@ router.get('/idm/login', function(req, res, next) {
     oauth.get(cfgData.idm.url + '/user/', access_token, function (error2, response2) {
       if (error2) {
         return next(error2);
-    }
+      }
 
       var email = JSON.parse(response2).email;
 
