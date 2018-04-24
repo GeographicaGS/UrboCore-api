@@ -75,14 +75,15 @@ router.get('/idm/login', function(req, res, next) {
 
   // Using the access code goes again to the IDM to obtain the access_token
   oauth.getOAuthAccessToken(req.query.code, function (error1, response1) {
-    if (error1)
+    if (error1) {
       return next(error1);
-
+    }
     var access_token = response1.access_token;
 
     oauth.get(cfgData.idm.url + '/user/', access_token, function (error2, response2) {
-      if (error2)
+      if (error2) {
         return next(error2);
+      }
 
       var email = JSON.parse(response2).email;
 
