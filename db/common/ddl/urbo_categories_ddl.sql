@@ -61,23 +61,52 @@ CREATE OR REPLACE FUNCTION urbo_categories_ddl(
         SET client_encoding = ''UTF8'';
 
         INSERT INTO metadata.categories_scopes
-          (id_scope, id_category, category_name,config)
-          VALUES
-          (%L, %L, %L,
-            (select jsonb_set(config,''{carto}'',(select config->''carto'' from metadata.scopes where id_scope=%L))
-            from metadata.categories where id_category=%L)
-          );
+            (id_scope, id_category, category_name,config)
+            VALUES
+            (
+              %1$L,
+              %2$L,
+              %3$L,
+              (
+                  select jsonb_set(
+                      config,
+                      ''{carto}'',
+                      (
+                          select
+                              config->''carto''
+                          from metadata.scopes
+                          where id_scope=%1$L
+                      )
+                  )
+                  from metadata.categories
+                  where id_category=%2$L
+              )
+            )
+        ;
 
-        INSERT INTO metadata.entities_scopes (SELECT DISTINCT %L, e.* FROM metadata.entities e where id_category=''%s'');
-        INSERT INTO metadata.variables_scopes (SELECT DISTINCT %L, v.* FROM metadata.variables v where id_entity like ''%s'');
+        INSERT INTO metadata.entities_scopes (
+              SELECT DISTINCT
+                  %1$L,
+                  e.*
+              FROM metadata.entities e
+              WHERE id_category=%2$L
+        );
 
-        SELECT urbo_createtables_%s(%L, ''%s'');',
-        id_scope, category, category_name,
-        id_scope, category,
-        id_scope, category,
-        id_scope, category,
-        category,id_scope, isdebug);
+        INSERT INTO metadata.variables_scopes (
+              SELECT DISTINCT
+                  %1$L,
+                  v.*
+              FROM metadata.variables v
+              where id_entity like ''%2$s%%''
+        );
 
+        SELECT urbo_createtables_%2$s(%1$L, ''%4$s'');
+    ',
+        id_scope,
+        category,
+        category_name,
+        isdebug
+    );
 
     END IF;
 
