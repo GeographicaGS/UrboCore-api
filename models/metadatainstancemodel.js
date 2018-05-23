@@ -42,21 +42,7 @@ function MetadataInstanceModel(cfg) {
 util.inherits(MetadataInstanceModel, MetadataModel);
 
 MetadataInstanceModel.prototype.getAdminScopes = function(cb) {
-  var query = [
-    'SELECT DISTINCT ON (s.id_scope) s.id_scope as id, s.scope_name as name, s.status, s.timezone,',
-    '(CASE WHEN (s.parent_id_scope IS NULL) THEN true ELSE false END) AS multi,',
-    'array(SELECT DISTINCT c.id_category FROM metadata.categories_scopes c',
-    'WHERE s.status = 1 AND c.id_scope = s.id_scope ORDER BY c.id_category',
-    ') AS categories, ',
-    'array(SELECT json_build_object(\'name\', name, \'surname\', surname) FROM public.users ',
-    'where users_id = ANY((SELECT read_users FROM public.users_graph where name=s.id_scope )::bigint[]) GROUP BY users_id)  as users',
-    'FROM metadata.scopes s LEFT JOIN metadata.variables_scopes v on s.id_scope=v.id_scope',
-    'WHERE (s.parent_id_scope=\'orphan\' OR s.parent_id_scope is NULL)'
-  ];
-  this.query(query.join(' '), null, function(err, d) {
-    if (err) return cb(err);
-    return cb(null, d.rows);
-  });
+  this.getScopeForAdmin(null, cb);
 };
 
 /*
@@ -415,19 +401,72 @@ MetadataInstanceModel.prototype.getReducedScopes = function(cb) {
 
 MetadataInstanceModel.prototype.getScopeForAdmin = function(scope, cb) {
   var _this = this;
-  var q = ['SELECT s.id_scope AS id, s.dbschema, s.scope_name AS name, s.parent_id_scope AS parent_id,',
-    'ARRAY[ST_Y(s.geom), ST_X(s.geom)] as location, s.zoom, s.status, ',
-    'array(SELECT DISTINCT c.id_category',
-    'FROM metadata.categories_scopes c',
-    'WHERE c.id_scope = s.id_scope ORDER BY c.id_category',
-    ') AS categories,',
-    '(CASE WHEN (s.parent_id_scope IS NULL) THEN true ELSE false END) AS multi,',
-    'array(SELECT sc.id_scope FROM metadata.scopes sc WHERE sc.parent_id_scope = s.id_scope) AS childs, ',
-    'array(SELECT f.title FROM public.frames_scope f WHERE s.id_scope = f.scope_id) as frames',
-    'FROM metadata.scopes s',
-    'WHERE s.id_scope = ANY ($1)'];
 
-  this.query(q.join(' '), [[scope]], function(err, s) {
+  if(!scope)
+    scope = '';
+  else
+    scope = [scope];
+
+  var q = `
+    SELECT 
+      s.id_scope as id, 
+      s.dbschema,
+      s.scope_name as name, 
+      s.status, 
+      s.timezone,
+      s.parent_id_scope AS parent_id, 
+      ARRAY[
+        ST_Y(s.geom),
+        ST_X(s.geom)
+      ] as location,
+      s.zoom,
+      CASE 
+        WHEN (s.parent_id_scope IS NULL) THEN true 
+        ELSE false 
+      END AS multi, 
+      array(
+        SELECT DISTINCT 
+          c.id_category 
+        FROM metadata.categories_scopes c 
+        WHERE 
+          s.status = 1 AND 
+          c.id_scope = s.id_scope 
+        ORDER BY c.id_category 
+      ) AS categories,  
+      array(
+        SELECT 
+          json_build_object(
+            'name', name, 
+            'surname', surname
+          ) 
+        FROM public.users  
+        WHERE 
+            users_id = ANY((
+              SELECT read_users 
+              FROM public.users_graph 
+              WHERE name=s.id_scope 
+            )::bigint[]) 
+        GROUP BY users_id
+      )  as users,
+      array(
+        SELECT 
+          f.title 
+        FROM public.frames_scope f 
+        WHERE s.id_scope = f.scope_id
+      ) as frames,
+      array(
+        SELECT 
+          sc.id_scope 
+        FROM metadata.scopes sc 
+        WHERE sc.parent_id_scope = s.id_scope
+      ) AS childs
+    FROM metadata.scopes s 
+    WHERE 
+      '{' || $1 || '}'='{}' OR 
+      s.id_scope=ANY(('{' || $1 || '}')::varchar[])
+  `;
+
+  this.query(q,[scope], function(err, s) {
     if (err) {
       log.error('Cannot execute sql query');
       log.error(q);
@@ -440,42 +479,58 @@ MetadataInstanceModel.prototype.getScopeForAdmin = function(scope, cb) {
       return cb(null, null);
     }
 
-    // If it isn't a multiscope, prepare it and return the resopnse
-    if (!s.rows[0].multi) {
-      delete s.rows[0].childs;
-      return cb(null, s.rows[0]);
+    let retrievedScopes = {};
+    for(let scope of s.rows){
+      retrievedScopes[scope.id] = scope;
     }
 
-    // If we are continuing it means that the request scope is a multiscope
-    _this.query(q.join(' '), [s.rows[0].childs], function(err, sChilds) {
-      if (err) {
+    let childScopes = s.rows
+      .map((x)=>{return x.childs})
+      .reduce((x, y)=>{return x.concat(y)})
+    ;
+
+    let missingScopes = [...new Set(childScopes.filter((x)=>{return !scope[x]}))];
+
+    let retrieveMissingScopes;
+    if(!missingScopes.length){
+      retrieveMissingScopes = Promise.resolve([])
+    } else {
+      retrieveMissingScopes = new Promise((accept, reject)=>{
+        _this.query(q, [missingScopes], function(err, sChilds) {
+          if(err)
+            reject(err);
+          else
+            accept(sChilds.rows);
+        });
+      })
+    }
+
+    retrieveMissingScopes
+      .then(function(sChilds){
+
+        for(let scope of sChilds){
+          retrievedScopes[scope.id] = scope;
+        }
+
+        let scopes = s.rows.map((scope)=>{
+          scope.childs = scope.childs.map((childScopeName)=>{
+            let childObject = retrievedScopes[childScopeName] || {'id': retrievedScopes};
+            return _.omit(childObject, ['multi', 'childs', 'parent_id']);
+          });
+
+          return scope
+        });
+  
+        return cb(null, scopes);
+      })
+      .catch((err)=>{
         log.error('Cannot execute sql query');
         log.error(q);
         return cb(err);
-      }
-
-      // Preparing the childs before returning the response
-      var childs = sChilds.rows.map(function(child) {
-        delete child.multi;
-        delete child.childs;
-        delete child.parent_id;
-        return child;
-      });
-
-      // Preparing the parent before returning the response
-      s.rows[0].childs = childs;
-      delete s.rows[0].parent_id;
-      delete s.rows[0].categories;
-      if (!s.rows[0].zoom) {
-        delete s.rows[0].zoom;
-      }
-      if (!s.rows[0].location) {
-        delete s.rows[0].location;
-      }
-
-      return cb(null, s.rows[0]);
-    });
+      })
+    ;
   });
+  
 };
 
 MetadataInstanceModel.prototype.getScope = function(scope, user, cb) {

@@ -249,7 +249,7 @@ CREATE OR REPLACE FUNCTION urbo_pk_qry(
     FOREACH _tb IN ARRAY _tb_arr
       LOOP
         _stm = format(
-          'ALTER TABLE %s ADD COLUMN id bigserial NOT NULL;
+          'ALTER TABLE %s ADD COLUMN IF NOT EXISTS id bigserial NOT NULL;
            ALTER TABLE ONLY %s
                ADD CONSTRAINT %s_pk PRIMARY KEY (id);',
           _tb, _tb, replace(_tb, '.', '_')
