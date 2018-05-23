@@ -402,7 +402,7 @@ MetadataInstanceModel.prototype.getReducedScopes = function(cb) {
 MetadataInstanceModel.prototype.getScopeForAdmin = function(scope, cb) {
   var _this = this;
 
-  if(!scope)
+  if (!scope)
     scope = '';
   else
     scope = [scope];
@@ -480,7 +480,7 @@ MetadataInstanceModel.prototype.getScopeForAdmin = function(scope, cb) {
     }
 
     let retrievedScopes = {};
-    for(let scope of s.rows){
+    for (let scope of s.rows) {
       retrievedScopes[scope.id] = scope;
     }
 
@@ -492,12 +492,12 @@ MetadataInstanceModel.prototype.getScopeForAdmin = function(scope, cb) {
     let missingScopes = [...new Set(childScopes.filter((x)=>{return !scope[x]}))];
 
     let retrieveMissingScopes;
-    if(!missingScopes.length){
+    if (!missingScopes.length) {
       retrieveMissingScopes = Promise.resolve([])
     } else {
       retrieveMissingScopes = new Promise((accept, reject)=>{
         _this.query(q, [missingScopes], function(err, sChilds) {
-          if(err)
+          if (err)
             reject(err);
           else
             accept(sChilds.rows);
@@ -506,9 +506,9 @@ MetadataInstanceModel.prototype.getScopeForAdmin = function(scope, cb) {
     }
 
     retrieveMissingScopes
-      .then(function(sChilds){
+      .then(function(sChilds) {
 
-        for(let scope of sChilds){
+        for (let scope of sChilds) {
           retrievedScopes[scope.id] = scope;
         }
 

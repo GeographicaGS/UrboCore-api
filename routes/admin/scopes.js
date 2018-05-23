@@ -67,7 +67,7 @@ router.get('/:scope', checkScope, function(req, res, next) {
       next(err);
 
     } else {
-      res.json(data);
+      res.json(data[0]);
     }
   });
 });
