@@ -64,7 +64,12 @@ app.use(function(req, res, next) {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, X-Access-Token, X-Access-Token-Public, DeMA-Access-PSK');
   res.header('Access-Control-Allow-Methods', 'OPTIONS, GET, POST, PUT, DELETE');
-  next();
+
+  if (req.method === 'OPTIONS') {
+    res.send();
+  } else {
+    next()
+  }
 });
 
 // Loading access logger
