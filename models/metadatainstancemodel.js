@@ -553,6 +553,10 @@ MetadataInstanceModel.prototype.getScopeForAdmin = function(scope, user, cb) {
         let scopes = s.rows.map((scope)=>{
           scope.childs = scope.childs.map((childScopeName)=>{
             let childObject = retrievedScopes[childScopeName] || {'id': retrievedScopes};
+
+            if (scopeMetas !== null)
+              childObject.metadata = scopeMetas[childScopeName] || [];
+
             return _.omit(childObject, ['multi', 'childs', 'parent_id']);
           });
 
