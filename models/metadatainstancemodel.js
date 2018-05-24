@@ -479,6 +479,20 @@ MetadataInstanceModel.prototype.getScopeForAdmin = function(scope, cb) {
       return cb(null, null);
     }
 
+    // For each scope, we want to replace their child ids
+    // includes in .[].childs by the scope objects representing
+    // the childs, and including almost the same information than
+    // the parents. So we have to:
+    //   1. Guess which scopes did we retrieved (and store them in
+    //   ``retrievedScopes`` for reference).
+    //   2. Guess which scopes must be retrieved from the db. Those
+    //   are those scopes whose id is included as child of any of
+    //   the retrieved scopes, but were not retrieved in the first
+    //   query.
+    //   3. We add then the missing scopes to ``retrievedScopes``
+    //   in a second query.
+    //   4. We iterate each parent scope and replace the childs
+    //   scope id list with their respective scope objects.
     let retrievedScopes = {};
     for (let scope of s.rows) {
       retrievedScopes[scope.id] = scope;
