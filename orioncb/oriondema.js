@@ -64,7 +64,7 @@ class OrionDeMA extends OrionBaseV2 {
     return new Promise((resolve, reject) => {
 
       let model = new MD();
-      model.getScopeForAdmin(scope, (error, data) => {
+      model.getScopeForAdmin(scope, null, (error, data) => {
         data = data[0];
         if (error) return reject(error);
 
