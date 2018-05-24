@@ -59,7 +59,7 @@ PGSQLModel.prototype.promise_query = function(sql, bindings) {
 };
 
 PGSQLModel.prototype.query = function(sql, bindings, cb) {
-  this.promise_query(sql, bindings)
+  return this.promise_query(sql, bindings)
     .then(function(data) {
       if (cb) return cb(null, data);
       return Promise.resolve(data);

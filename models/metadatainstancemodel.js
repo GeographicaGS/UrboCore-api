@@ -32,7 +32,7 @@ var log = utils.log();
 var auth = require('../auth.js');
 var slug = require('node-slug').slug();
 var bPromise = require('bluebird');
-var pValid = bPromise.promisify(auth.validElements);
+var authValidElements = bPromise.promisify(auth.validElements);
 var config = require('../config');
 
 function MetadataInstanceModel(cfg) {
@@ -41,8 +41,8 @@ function MetadataInstanceModel(cfg) {
 
 util.inherits(MetadataInstanceModel, MetadataModel);
 
-MetadataInstanceModel.prototype.getAdminScopes = function(cb) {
-  this.getScopeForAdmin(null, cb);
+MetadataInstanceModel.prototype.getAdminScopes = function(user, cb) {
+  this.getScopeForAdmin(null, user, cb);
 };
 
 /*
@@ -361,7 +361,7 @@ MetadataInstanceModel.prototype.getScopeList = function(user_id, multi, cb) {
             elements: row.categories
           }
 
-          return pValid(opts)
+          return authValidElements(opts)
             .then(function(valids) {
               // Skip duplicates
               row.categories = Array.from(new Set(valids));
@@ -399,7 +399,7 @@ MetadataInstanceModel.prototype.getReducedScopes = function(cb) {
 }
 
 
-MetadataInstanceModel.prototype.getScopeForAdmin = function(scope, cb) {
+MetadataInstanceModel.prototype.getScopeForAdmin = function(scope, user, cb) {
   var _this = this;
 
   if (!scope)
@@ -466,7 +466,7 @@ MetadataInstanceModel.prototype.getScopeForAdmin = function(scope, cb) {
       s.id_scope=ANY(('{' || $1 || '}')::varchar[])
   `;
 
-  this.query(q,[scope], function(err, s) {
+  this.query(q,[scope], (err, s)=>{
     if (err) {
       log.error('Cannot execute sql query');
       log.error(q);
@@ -520,17 +520,48 @@ MetadataInstanceModel.prototype.getScopeForAdmin = function(scope, cb) {
     }
 
     retrieveMissingScopes
-      .then(function(sChilds) {
+      .then((sChilds)=> {
 
         for (let scope of sChilds) {
           retrievedScopes[scope.id] = scope;
         }
 
+        // Now that we have all scopes, we can proceed to retrieve all metadatas
+        let metadataPromise;
+
+        if (user) {
+          metadataPromise = Promise
+            .all(Object.keys(retrievedScopes).map((scope_id) => {
+              return this
+                .getMetadataForScope(scope_id, user)
+                .then((medatata) => {
+                  return [scope_id, medatata]
+                });
+            }))
+            .then((scopeMetas)=>{
+              return _.object(scopeMetas)
+            })
+          ;
+        } else {
+          metadataPromise = Promise.resolve(null);
+        }
+
+        return metadataPromise;
+      })
+      .then((scopeMetas)=>{
+
         let scopes = s.rows.map((scope)=>{
           scope.childs = scope.childs.map((childScopeName)=>{
             let childObject = retrievedScopes[childScopeName] || {'id': retrievedScopes};
+
+            if (scopeMetas !== null)
+              childObject.metadata = scopeMetas[childScopeName] || [];
+
             return _.omit(childObject, ['multi', 'childs', 'parent_id']);
           });
+
+          if (scopeMetas !== null)
+            scope.metadata = scopeMetas[scope.id] || [];
 
           return scope
         });
@@ -628,7 +659,7 @@ MetadataInstanceModel.prototype.getScope = function(scope, user, cb) {
       _.each(element.childs, function(child) {
         var opts = { scope: element.id, user_id: user_id, elements: child.categories };
         promises.push(function() {
-          return pValid(opts).then(function(valids) {
+          return authValidElements(opts).then(function(valids) {
             // Skip duplicates
             valids = Array.from(new Set(valids));
             child.categories = valids;
@@ -659,77 +690,83 @@ MetadataInstanceModel.prototype.getScope = function(scope, user, cb) {
 
 // /scopes/:scope/metadata
 MetadataInstanceModel.prototype.getMetadataForScope = function(id_scope, user, cb) {
-  var skipcheck = (user.id === cons.PUBLISHED);
-  var user_id = skipcheck ? 1 : user.id;
 
-  var q = this._getMetadataQueryForScope(id_scope, user);
-  this.query(q, null, (function(err, d) {
-    if (err) return cb(err);
-    var dataset = this._dataset2metadata(d);
+  var q = this._getMetadataQueryForScope(user.superadmin);
 
-    // Check entities
-    var promises = [];
-    var varproms = [];
-
-    _.each(dataset, function(category) {
-      var entities = _.map(category.entities, function(entity) {
-        return entity.id;
-      });
-
-      var opts = { scope: id_scope, user_id: user_id, elements: entities };
-      promises.push(function() {
-
-        if (skipcheck) return Promise.resolve(category.entities);
-
-        return pValid(opts).then(function(valids) {
-          // Skip duplicates
-          valids = new Set(valids);
-          category.entities = _.filter(category.entities, function(ce) {
-            return valids.has(ce.id);
-          });
-          return Promise.resolve(valids);
-        })
-        .catch(function(err) {
-          return Promise.reject(err);
-        });
-      }());
-
-      _.each(category.entities, function(entity) {
-        var variables = _.map(entity.variables, function(variable) {
-          return variable.id
-        });
-        var opts = { scope: id_scope, user_id: user_id, elements: variables };
-        varproms.push(function() {
-
-          if (skipcheck) return Promise.resolve(entity.variables);
-
-          return pValid(opts).then(function(valids) {
-            // Skip duplicates
-            valids = new Set(valids);
-            entity.variables = _.filter(entity.variables, function(ev) {
-              return valids.has(ev.id);
-            });
-            return Promise.resolve(valids);
-          })
-          .catch(function(err) {
-            return Promise.reject(err);
-          });
-        }());
-      })
-
-    });
-
-    Promise.all(promises).then(function(results) {
-      return Promise.all(varproms).then(function() {
-        return cb(null, dataset);
-      });
+  return this
+    .query(q, [id_scope])
+    .then((d)=>{
+      // Convert raw metadata to standardized format
+      return this._dataset2metadata(d);
     })
-    .catch(function(err) {
-      if (cb) { return cb(err);}
-    });
+    .then((dataset)=>{
+      // Check that the current user and scope has access to the
+      // categories, entities and variables defined in DB
+      let promises = [];
+      let varproms = [];
+      let curPromise;
 
-  }).bind(this));
-}
+      // Filter out categories and entities that the user is not allowed to see
+      for (let category of dataset) {
+
+        let entities = category.entities.map((e)=>e.id);
+
+        curPromise =
+          authValidElements({
+            scope: id_scope,
+            user_id: user.id,
+            elements: entities
+          })
+          .then((valids)=>{
+            valids = new Set(valids);
+
+            category.entities = category.entities
+              .filter((ce)=>valids.has(ce.id))
+            ;
+          })
+        ;
+
+        promises.push(curPromise);
+        
+        for (let entity of category.entities) {
+          let variables = entity.variables.map((v)=>v.id);
+          
+          curPromise =
+            authValidElements({ 
+              scope: id_scope, 
+              user_id: user.id, 
+              elements: variables 
+            })
+            .then(function(valids) {
+              valids = new Set(valids);
+              
+              entity.variables = entity.variables
+                .filter((ev)=>valids.has(ev.id))
+              ;
+            })
+          ;
+          
+          varproms.push(curPromise);
+        }
+      }
+      
+      promises.push(Promise.all(varproms));
+
+      return Promise
+        .all(promises)
+        .then(()=>dataset)
+      ;
+    })
+    .then((dataset)=>{
+      if (cb) cb(null, dataset);
+      return dataset;
+    })
+    .catch((err)=>{
+      if (cb) cb(err);
+      return Promise.reject(err);
+    })
+  ;
+};
 
 MetadataInstanceModel.prototype.getVarQuery = function(id_scope, id_variable, cb) {
   var varQry = `SELECT
@@ -878,31 +915,49 @@ MetadataInstanceModel.prototype.getEntsForSearch = function(scope,entities, cb) 
 }
 
 
-MetadataInstanceModel.prototype._getMetadataQueryForScope = function(id_scope, user) {
+MetadataInstanceModel.prototype._getMetadataQueryForScope = function(for_superadmin) {
 
-  var mtdQry = [
-    'SELECT DISTINCT c.category_name, c.id_category, c.nodata, c.config AS category_config, ',
-    '(CASE WHEN v.table_name IS NULL THEN e.table_name ELSE v.table_name END) AS table_name,',
-    ' e.entity_name, ',
-    ' e.mandatory as entity_mandatory, e.table_name as entity_table_name, e.editable as entity_editable, ',
-    'v.id_variable as id_variable, v.id_entity, v.var_name, v.var_units, ',
-    'v.var_thresholds, v.var_agg, v.var_reverse, v.mandatory as variable_mandatory, v.editable as variable_editable, ',
-    'v.entity_field as column_name, v.config',
-    'FROM metadata.scopes s',
-    'LEFT JOIN metadata.categories_scopes c on c.id_scope=s.id_scope',
-    'LEFT JOIN metadata.entities_scopes e on (e.id_category=c.id_category AND e.id_scope=s.id_scope)',
-    'LEFT JOIN metadata.variables_scopes v on (v.id_entity=e.id_entity AND v.id_scope=s.id_scope)'
-  ];
+  var sql = `
+    SELECT DISTINCT 
+      c.category_name, 
+      c.id_category, 
+      c.nodata, 
+      c.config       AS category_config, 
+      ( CASE 
+          WHEN v.table_name IS NULL THEN e.table_name 
+          ELSE v.table_name 
+        END )        AS table_name, 
+      e.entity_name, 
+      e.mandatory    AS entity_mandatory, 
+      e.table_name   AS entity_table_name, 
+      e.editable     AS entity_editable, 
+      v.id_variable  AS id_variable, 
+      v.id_entity, 
+      v.var_name, 
+      v.var_units, 
+      v.var_thresholds, 
+      v.var_agg, 
+      v.var_reverse, 
+      v.mandatory    AS variable_mandatory, 
+      v.editable     AS variable_editable, 
+      v.entity_field AS column_name, 
+      v.config 
+    FROM   metadata.scopes s 
+    LEFT JOIN metadata.categories_scopes c 
+      ON c.id_scope = s.id_scope 
+    LEFT JOIN metadata.entities_scopes e 
+      ON e.id_category = c.id_category AND e.id_scope = s.id_scope  
+    LEFT JOIN metadata.variables_scopes v 
+      ON v.id_entity = e.id_entity AND v.id_scope = s.id_scope
+    WHERE s.id_scope=$1 
+  `;
 
-  var whereClause = 'WHERE s.id_scope=\''+id_scope+'\'';
-  if (!user.superadmin) {
-    whereClause += ' AND s.status = 1';
+  if (!for_superadmin) {
+    sql += ' AND s.status = 1';
   }
 
-  mtdQry.push(whereClause);
-  return mtdQry.join(' ');
-
-}
+  return sql;
+};
 
 
 //DEPRECATED
