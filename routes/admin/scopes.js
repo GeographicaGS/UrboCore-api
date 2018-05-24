@@ -50,7 +50,7 @@ router.use('/:scope/permissions', checkScope, permissions);
 
 /* Scope list */
 router.get('/', function(req, res, next) {
-  new ScopeModel().getAdminScopes(function(err, scopeList) {
+  new ScopeModel().getAdminScopes(res.user, function(err, scopeList) {
       if (err) {
         next(err);
       } else {
@@ -61,7 +61,7 @@ router.get('/', function(req, res, next) {
 
 
 router.get('/:scope', checkScope, function(req, res, next) {
-  new ScopeModel().getScopeForAdmin(req.params.scope, function(err, data) {
+  new ScopeModel().getScopeForAdmin(req.params.scope, res.user, function(err, data) {
     if (err) {
       log.error('Devices map: Error when selecting data');
       next(err);

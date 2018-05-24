@@ -49,9 +49,9 @@ ScopeModel.prototype.getScopeMetadata = function(scope, user, cb) {
   return metadata.getMetadataForScope(scope, user, cb);
 }
 
-ScopeModel.prototype.getScopeForAdmin = function(scope, cb) {
+ScopeModel.prototype.getScopeForAdmin = function(scope, user, cb) {
   var metadata = new MetadataInstanceModel();
-  return metadata.getScopeForAdmin(scope, cb);
+  return metadata.getScopeForAdmin(scope, user, cb);
 }
 
 
@@ -60,9 +60,9 @@ ScopeModel.prototype.getScope = function(scope, user, cb) {
   return metadata.getScope(scope, user, cb);
 }
 
-ScopeModel.prototype.getAdminScopes = function(cb) {
+ScopeModel.prototype.getAdminScopes = function(user, cb) {
   var metadata = new MetadataInstanceModel();
-  return metadata.getAdminScopes(cb);
+  return metadata.getAdminScopes(user, cb);
 }
 
 ScopeModel.prototype.getReducedScopes = function(cb) {
