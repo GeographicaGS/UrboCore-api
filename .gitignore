@@ -41,3 +41,6 @@ verticals/*
 !verticals/index.js
 db/migrations/*
 !db/migrations/.gitkeep
+config.dev.yml
+config.prod.yml
+deploy.sh

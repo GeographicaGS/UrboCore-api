@@ -249,6 +249,10 @@ CREATE OR REPLACE FUNCTION urbo_pk_qry(
     FOREACH _tb IN ARRAY _tb_arr
       LOOP
         _stm = format(
+          -- FIXME: IF NOT EXISTS is missing and causes problems with ./cartofunctions.
+          -- When all carto accounts are migrated to PG 9.6+, we should add
+          -- IF NOT EXISTS
+          -- 'ALTER TABLE %s ADD COLUMN IF NOT EXISTS id bigserial NOT NULL;
           'ALTER TABLE %s ADD COLUMN id bigserial NOT NULL;
            ALTER TABLE ONLY %s
                ADD CONSTRAINT %s_pk PRIMARY KEY (id);',
