@@ -408,61 +408,74 @@ MetadataInstanceModel.prototype.getScopeForAdmin = function(scope, user, cb) {
     scope = [scope];
 
   var q = `
-    SELECT 
-      s.id_scope as id, 
+    SELECT
+      s.id_scope as id,
       s.dbschema,
-      s.scope_name as name, 
-      s.status, 
+      s.scope_name as name,
+      s.status,
       s.timezone,
-      s.parent_id_scope AS parent_id, 
+      s.parent_id_scope AS parent_id,
       ARRAY[
         ST_Y(s.geom),
         ST_X(s.geom)
       ] as location,
       s.zoom,
-      CASE 
-        WHEN (s.parent_id_scope IS NULL) THEN true 
-        ELSE false 
-      END AS multi, 
+      CASE
+        WHEN (s.parent_id_scope IS NULL) THEN true
+        ELSE false
+      END AS multi,
       array(
-        SELECT DISTINCT 
-          c.id_category 
-        FROM metadata.categories_scopes c 
-        WHERE 
-          s.status = 1 AND 
-          c.id_scope = s.id_scope 
-        ORDER BY c.id_category 
-      ) AS categories,  
+        SELECT DISTINCT
+          c.id_category
+        FROM metadata.categories_scopes c
+        WHERE
+          s.status = 1 AND
+          c.id_scope = s.id_scope
+        ORDER BY c.id_category
+      ) AS categories,
       array(
-        SELECT 
+        SELECT
           json_build_object(
-            'name', name, 
+            'name', name,
             'surname', surname
-          ) 
-        FROM public.users  
-        WHERE 
+          )
+        FROM public.users
+        WHERE
             users_id = ANY((
-              SELECT read_users 
-              FROM public.users_graph 
-              WHERE name=s.id_scope 
-            )::bigint[]) 
+              SELECT read_users
+              FROM public.users_graph
+              WHERE name=s.id_scope
+            )::bigint[])
         GROUP BY users_id
       )  as users,
       array(
-        SELECT 
-          f.title 
-        FROM public.frames_scope f 
+        SELECT
+          f.title
+        FROM public.frames_scope f
         WHERE s.id_scope = f.scope_id
       ) as frames,
       array(
-        SELECT 
-          sc.id_scope 
-        FROM metadata.scopes sc 
+        SELECT
+          sc.id_scope
+        FROM metadata.scopes sc
         WHERE sc.parent_id_scope = s.id_scope
-      ) AS childs
-    FROM metadata.scopes s 
-    WHERE 
-      '{' || $1 || '}'='{}' OR 
+      ) AS childs,
+      array(
+        SELECT
+        json_build_object(
+          'widget', id_widget,
+          'published', json_agg(
+            json_build_object(
+              'name',publish_name,
+              'token',token)
+          )
+        )
+        FROM metadata.scope_widgets_tokens
+        WHERE id_scope = s.id_scope GROUP BY id_widget
+      ) as widgets
+    FROM metadata.scopes s
+    WHERE
+      '{' || $1 || '}'='{}' OR
       s.id_scope=ANY(('{' || $1 || '}')::varchar[])
   `;
 
@@ -565,7 +578,7 @@ MetadataInstanceModel.prototype.getScopeForAdmin = function(scope, user, cb) {
 
           return scope
         });
-  
+
         return cb(null, scopes);
       })
       .catch((err)=>{
@@ -575,7 +588,7 @@ MetadataInstanceModel.prototype.getScopeForAdmin = function(scope, user, cb) {
       })
     ;
   });
-  
+
 };
 
 MetadataInstanceModel.prototype.getScope = function(scope, user, cb) {
@@ -727,29 +740,29 @@ MetadataInstanceModel.prototype.getMetadataForScope = function(id_scope, user, c
         ;
 
         promises.push(curPromise);
-        
+
         for (let entity of category.entities) {
           let variables = entity.variables.map((v)=>v.id);
-          
+
           curPromise =
-            authValidElements({ 
-              scope: id_scope, 
-              user_id: user.id, 
-              elements: variables 
+            authValidElements({
+              scope: id_scope,
+              user_id: user.id,
+              elements: variables
             })
             .then(function(valids) {
               valids = new Set(valids);
-              
+
               entity.variables = entity.variables
                 .filter((ev)=>valids.has(ev.id))
               ;
             })
           ;
-          
+
           varproms.push(curPromise);
         }
       }
-      
+
       promises.push(Promise.all(varproms));
 
       return Promise
@@ -918,38 +931,38 @@ MetadataInstanceModel.prototype.getEntsForSearch = function(scope,entities, cb) 
 MetadataInstanceModel.prototype._getMetadataQueryForScope = function(for_superadmin) {
 
   var sql = `
-    SELECT DISTINCT 
-      c.category_name, 
-      c.id_category, 
-      c.nodata, 
-      c.config       AS category_config, 
-      ( CASE 
-          WHEN v.table_name IS NULL THEN e.table_name 
-          ELSE v.table_name 
-        END )        AS table_name, 
-      e.entity_name, 
-      e.mandatory    AS entity_mandatory, 
-      e.table_name   AS entity_table_name, 
-      e.editable     AS entity_editable, 
-      v.id_variable  AS id_variable, 
-      v.id_entity, 
-      v.var_name, 
-      v.var_units, 
-      v.var_thresholds, 
-      v.var_agg, 
-      v.var_reverse, 
-      v.mandatory    AS variable_mandatory, 
-      v.editable     AS variable_editable, 
-      v.entity_field AS column_name, 
-      v.config 
-    FROM   metadata.scopes s 
-    LEFT JOIN metadata.categories_scopes c 
-      ON c.id_scope = s.id_scope 
-    LEFT JOIN metadata.entities_scopes e 
-      ON e.id_category = c.id_category AND e.id_scope = s.id_scope  
-    LEFT JOIN metadata.variables_scopes v 
+    SELECT DISTINCT
+      c.category_name,
+      c.id_category,
+      c.nodata,
+      c.config       AS category_config,
+      ( CASE
+          WHEN v.table_name IS NULL THEN e.table_name
+          ELSE v.table_name
+        END )        AS table_name,
+      e.entity_name,
+      e.mandatory    AS entity_mandatory,
+      e.table_name   AS entity_table_name,
+      e.editable     AS entity_editable,
+      v.id_variable  AS id_variable,
+      v.id_entity,
+      v.var_name,
+      v.var_units,
+      v.var_thresholds,
+      v.var_agg,
+      v.var_reverse,
+      v.mandatory    AS variable_mandatory,
+      v.editable     AS variable_editable,
+      v.entity_field AS column_name,
+      v.config
+    FROM   metadata.scopes s
+    LEFT JOIN metadata.categories_scopes c
+      ON c.id_scope = s.id_scope
+    LEFT JOIN metadata.entities_scopes e
+      ON e.id_category = c.id_category AND e.id_scope = s.id_scope
+    LEFT JOIN metadata.variables_scopes v
       ON v.id_entity = e.id_entity AND v.id_scope = s.id_scope
-    WHERE s.id_scope=$1 
+    WHERE s.id_scope=$1
   `;
 
   if (!for_superadmin) {
