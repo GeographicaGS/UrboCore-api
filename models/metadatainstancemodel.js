@@ -41,10 +41,6 @@ function MetadataInstanceModel(cfg) {
 
 util.inherits(MetadataInstanceModel, MetadataModel);
 
-MetadataInstanceModel.prototype.getAdminScopes = function(user, cb) {
-  this.getScopesWithMetadata(null, user, cb);
-};
-
 /*
 {
   "name": "Junta de Andalucía",
@@ -470,6 +466,7 @@ MetadataInstanceModel.prototype.getScopesWithMetadata = function(scope, user, cb
         SELECT DISTINCT
           c.id_category
         FROM metadata.categories_scopes c
+        ${categ_qry}
         WHERE
           s.status = 1 AND
           c.id_scope = s.id_scope
@@ -507,7 +504,6 @@ MetadataInstanceModel.prototype.getScopesWithMetadata = function(scope, user, cb
       '{' || $1 || '}'='{}' OR
       s.id_scope=ANY(('{' || $1 || '}')::varchar[])
   `;
-
   this.query(q,[scope], (err, s)=>{
     if (err) {
       log.error('Cannot execute sql query');

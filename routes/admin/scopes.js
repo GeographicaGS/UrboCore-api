@@ -50,7 +50,7 @@ router.use('/:scope/permissions', checkScope, permissions);
 
 /* Scope list */
 router.get('/', function(req, res, next) {
-  new ScopeModel().getAdminScopes(res.user, function(err, scopeList) {
+  new ScopeModel().getScopeForAdmin(null, res.user, function(err, scopeList) {
       if (err) {
         next(err);
       } else {

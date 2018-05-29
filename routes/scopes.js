@@ -46,7 +46,7 @@ router.get('/', function(req, res, next) {
 
   var model = new ScopeModel();
   if (req.query.metadata) {
-    model.getAdminScopes(res.user, function(err, scopeList) {
+    model.getScopeForNoAdmin(null, res.user, function(err, scopeList) {
         if (err) {
           next(err);
         } else {

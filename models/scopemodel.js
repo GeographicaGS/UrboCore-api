@@ -54,14 +54,15 @@ ScopeModel.prototype.getScopeForAdmin = function(scope, user, cb) {
   return metadata.getScopesWithMetadata(scope, user, cb);
 }
 
+ScopeModel.prototype.getScopeForNoAdmin = function(scope, user, cb) {
+  var metadata = new MetadataInstanceModel();
+  user.superadmin = false
+  return metadata.getScopesWithMetadata(scope, user, cb);
+}
+
 ScopeModel.prototype.getScope = function(scope, user, cb) {
   var metadata = new MetadataInstanceModel();
   return metadata.getScope(scope, user, cb);
-}
-
-ScopeModel.prototype.getAdminScopes = function(user, cb) {
-  var metadata = new MetadataInstanceModel();
-  return metadata.getAdminScopes(user, cb);
 }
 
 ScopeModel.prototype.getReducedScopes = function(cb) {
