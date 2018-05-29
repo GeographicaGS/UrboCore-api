@@ -426,7 +426,7 @@ MetadataInstanceModel.prototype.getScopesWithMetadata = function(scope, user, cb
     `;
   } else {
     users_join_qry = `
-      JOIN public.users_graph ug  ON (
+      JOIN public.users_graph ug ON (
         s.id_scope=ug.name
         AND (
           ${user.id} = ANY(ug.read_users)
@@ -435,7 +435,7 @@ MetadataInstanceModel.prototype.getScopesWithMetadata = function(scope, user, cb
       )
     `;
     categ_qry = `
-      JOIN public.users_graph ug  ON (
+      JOIN public.users_graph ug ON (
         c.id_category=ug.name
         AND (
           ${user.id} = ANY(ug.read_users)
@@ -463,14 +463,19 @@ MetadataInstanceModel.prototype.getScopesWithMetadata = function(scope, user, cb
         ELSE false
       END AS multi,
       array(
-        SELECT DISTINCT
-          c.id_category
+        SELECT DISTINCT c.id_category
         FROM metadata.categories_scopes c
         ${categ_qry}
         WHERE
           s.status = 1 AND
-          c.id_scope = s.id_scope
-        ORDER BY c.id_category
+          c.id_scope = ANY (
+            CASE WHEN s.parent_id_scope IS NULL THEN array(
+              SELECT sp.id_scope::text
+              FROM metadata.scopes sp
+              WHERE sp.parent_id_scope = s.id_scope
+            )
+            ELSE array[s.id_scope] END
+        ) ORDER BY c.id_category
       ) AS categories,
       array(
         SELECT
