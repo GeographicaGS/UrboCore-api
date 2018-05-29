@@ -42,7 +42,7 @@ function MetadataInstanceModel(cfg) {
 util.inherits(MetadataInstanceModel, MetadataModel);
 
 MetadataInstanceModel.prototype.getAdminScopes = function(user, cb) {
-  this.getScopeForAdmin(null, user, cb);
+  this.getScopesWithMetadata(null, user, cb);
 };
 
 /*
@@ -399,13 +399,55 @@ MetadataInstanceModel.prototype.getReducedScopes = function(cb) {
 }
 
 
-MetadataInstanceModel.prototype.getScopeForAdmin = function(scope, user, cb) {
+MetadataInstanceModel.prototype.getScopesWithMetadata = function(scope, user, cb) {
   var _this = this;
 
   if (!scope)
     scope = '';
   else
     scope = [scope];
+
+  var users_data_qry = '';
+  var users_join_qry = '';
+  var categ_qry = '';
+  if (user.superadmin) {
+    users_data_qry = `
+      ,array(
+        SELECT
+          json_build_object(
+            'name', name,
+            'surname', surname
+          )
+        FROM public.users
+        WHERE
+            users_id = ANY((
+              SELECT read_users
+              FROM public.users_graph
+              WHERE name=s.id_scope
+            )::bigint[])
+        GROUP BY users_id
+      )  as users
+    `;
+  } else {
+    users_join_qry = `
+      JOIN public.users_graph ug  ON (
+        s.id_scope=ug.name
+        AND (
+          ${user.id} = ANY(ug.read_users)
+          OR ${user.id} = ANY(ug.write_users)
+        )
+      )
+    `;
+    categ_qry = `
+      JOIN public.users_graph ug  ON (
+        c.id_category=ug.name
+        AND (
+          ${user.id} = ANY(ug.read_users)
+          OR ${user.id} = ANY(ug.write_users)
+        )
+      )
+    `;
+  }
 
   var q = `
     SELECT
@@ -435,21 +477,6 @@ MetadataInstanceModel.prototype.getScopeForAdmin = function(scope, user, cb) {
       ) AS categories,
       array(
         SELECT
-          json_build_object(
-            'name', name,
-            'surname', surname
-          )
-        FROM public.users
-        WHERE
-            users_id = ANY((
-              SELECT read_users
-              FROM public.users_graph
-              WHERE name=s.id_scope
-            )::bigint[])
-        GROUP BY users_id
-      )  as users,
-      array(
-        SELECT
           f.title
         FROM public.frames_scope f
         WHERE s.id_scope = f.scope_id
@@ -473,7 +500,9 @@ MetadataInstanceModel.prototype.getScopeForAdmin = function(scope, user, cb) {
         FROM metadata.scope_widgets_tokens
         WHERE id_scope = s.id_scope GROUP BY id_widget
       ) as widgets
+      ${users_data_qry}
     FROM metadata.scopes s
+    ${users_join_qry}
     WHERE
       '{' || $1 || '}'='{}' OR
       s.id_scope=ANY(('{' || $1 || '}')::varchar[])
