@@ -47,11 +47,11 @@ router.get('/', function(req, res, next) {
   var model = new ScopeModel();
   if (req.query.metadata) {
     model.getScopeForNoAdmin(null, res.user, function(err, scopeList) {
-        if (err) {
-          next(err);
-        } else {
-          res.json(scopeList);
-        }
+      if (err) {
+        next(err);
+      } else {
+        res.json(scopeList);
+      }
     });
   } else {
     model.getScopeList(res.user.id, multi, function(err, scopeList) {
