@@ -593,28 +593,39 @@ MetadataInstanceModel.prototype.getScopesWithMetadata = function(scope, user, cb
       })
       .then((scopeMetas)=>{
 
-        let scopes = s.rows.map((scope)=>{
-          scope.childs = scope.childs
-            .map((childScopeName)=>{
-              if (retrievedScopes[childScopeName]) {
-                let childObject = retrievedScopes[childScopeName];
+        let scopes = s.rows
+          .map((scope)=>{
+            let isMultiscope = !!scope.childs;
 
-                if (scopeMetas !== null)
-                  childObject.metadata = scopeMetas[childScopeName] || [];
+            scope.childs = scope.childs
+              .map((childScopeName)=>{
+                if (retrievedScopes[childScopeName]) {
+                  let childObject = retrievedScopes[childScopeName];
 
-                return _.omit(childObject, ['multi', 'childs', 'parent_id']);
-              } else {
-                return null;
-              }
-            })
-            .filter((s)=>s!==null)
-          ;
+                  if (scopeMetas !== null)
+                    childObject.metadata = scopeMetas[childScopeName] || [];
 
-          if (scopeMetas !== null)
-            scope.metadata = scopeMetas[scope.id] || [];
+                  return _.omit(childObject, ['multi', 'childs', 'parent_id']);
+                } else {
+                  return null;
+                }
+              })
+              .filter((s)=>s!==null)
+            ;
 
-          return scope
-        });
+            if (scopeMetas !== null)
+              scope.metadata = scopeMetas[scope.id] || [];
+
+            // Multiscopes whithout any child accesible by the current user must
+            // not be shown
+            if (isMultiscope && !scope.childs) {
+              return null;
+            } else {
+              return scope;
+            }
+          })
+          .filter((s)=>s!==null)
+        ;
 
         return cb(null, scopes);
       })
