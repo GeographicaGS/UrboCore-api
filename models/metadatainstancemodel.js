@@ -596,7 +596,7 @@ MetadataInstanceModel.prototype.getScopesWithMetadata = function(scope, user, cb
         let scopes = s.rows.map((scope)=>{
           scope.childs = scope.childs
             .map((childScopeName)=>{
-              if (retrievedScopes[childScopeName]){
+              if (retrievedScopes[childScopeName]) {
                 let childObject = retrievedScopes[childScopeName];
 
                 if (scopeMetas !== null)
