@@ -29,7 +29,7 @@ const config = require('../config').getData();
 const utils = require('../utils');
 const log = utils.log();
 const ospath = require('path');
-const appDir = require('app-root-path').path;
+const appDir = require('app-root-path').path.replace(/\/bin\/?/, '');
 
 process.on('exit', function(code, t) {
   if(!code){

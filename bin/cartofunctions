@@ -28,7 +28,7 @@ var process = require('process');
 var Carto = require('cartodb');
 var config = require('../config').getData();
 var ospath = require('path');
-var appDir = require('app-root-path').path;
+var appDir = require('app-root-path').path.replace(/\/bin\/?/, '');
 var fs = require('fs');
 var util = require('util');
 var utils = require('../utils');
@@ -76,7 +76,7 @@ var discoverFunctions = function(basepath, master) {
   return files;
 };
 
-function loadFunction(sql, i, cb) {
+function loadFunction(sql, i, cb, errors={}) {
   var file = files[i];
   var func = fs.readFileSync(file).toString();
   sql.execute(func)
@@ -88,16 +88,22 @@ function loadFunction(sql, i, cb) {
       }
 
       if (i < (files.length - 1)) {
-        loadFunction(sql, i + 1, cb);
+        loadFunction(sql, i + 1, cb, errors);
       } else {
-        cb();
+        cb(errors);
       }
     })
-    .error(errors => {
-      for (let e of errors) {
+    .error(fnErrors => {
+      for (let e of fnErrors) {
         log.error(e);
       }
-      cb(errors);
+      errors[file] = fnErrors;
+
+      if (i < (files.length - 1)) {
+        loadFunction(sql, i + 1, cb, errors);
+      } else {
+        cb(errors);
+      }
     });
 }
 
@@ -135,9 +141,9 @@ function loadIntoAccount(i) {
     return;
   }
 
-  loadFunction(sql, 0, error => {
-    if (error) {
-      log.error('Something went wrong at ' + account.user);
+  loadFunction(sql, 0, errors => {
+    if (Object.keys(errors).length) {
+      log.error('Something went wrong at ' + account.user + ': ' + JSON.stringify(errors, null, 4));
     }
     if (i < (config.carto.length - 1)) {
       loadIntoAccount(i + 1);
