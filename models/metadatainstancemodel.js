@@ -594,14 +594,21 @@ MetadataInstanceModel.prototype.getScopesWithMetadata = function(scope, user, cb
       .then((scopeMetas)=>{
 
         let scopes = s.rows.map((scope)=>{
-          scope.childs = scope.childs.map((childScopeName)=>{
-            let childObject = retrievedScopes[childScopeName] || {'id': retrievedScopes};
+          scope.childs = scope.childs
+            .map((childScopeName)=>{
+              if (retrievedScopes[childScopeName]) {
+                let childObject = retrievedScopes[childScopeName];
 
-            if (scopeMetas !== null)
-              childObject.metadata = scopeMetas[childScopeName] || [];
+                if (scopeMetas !== null)
+                  childObject.metadata = scopeMetas[childScopeName] || [];
 
-            return _.omit(childObject, ['multi', 'childs', 'parent_id']);
-          });
+                return _.omit(childObject, ['multi', 'childs', 'parent_id']);
+              } else {
+                return null;
+              }
+            })
+            .filter((s)=>s!==null)
+          ;
 
           if (scopeMetas !== null)
             scope.metadata = scopeMetas[scope.id] || [];
