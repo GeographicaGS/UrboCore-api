@@ -405,7 +405,6 @@ MetadataInstanceModel.prototype.getScopesWithMetadata = function(scope, user, cb
 
   var users_data_qry = '';
   var users_flt_qry = '';
-  var categ_qry = '';
   if (user.superadmin) {
     users_data_qry = `
       ,array(
@@ -434,15 +433,6 @@ MetadataInstanceModel.prototype.getScopesWithMetadata = function(scope, user, cb
         )
       )
     `;
-    categ_qry = `
-      JOIN public.users_graph ug ON (
-        c.id_category=ug.name
-        AND (
-          ${user.id} = ANY(ug.read_users)
-          OR ${user.id} = ANY(ug.write_users)
-        )
-      )
-    `;
   }
 
   var q = `
@@ -463,19 +453,15 @@ MetadataInstanceModel.prototype.getScopesWithMetadata = function(scope, user, cb
         ELSE false
       END AS multi,
       array(
-        SELECT DISTINCT c.id_category
-        FROM metadata.categories_scopes c
-        ${categ_qry}
-        WHERE
-          s.status = 1 AND
-          c.id_scope = ANY (
-            CASE WHEN s.parent_id_scope IS NULL THEN array(
-              SELECT sp.id_scope::text
-              FROM metadata.scopes sp
-              WHERE sp.parent_id_scope = s.id_scope
-            )
-            ELSE array[s.id_scope] END
-        ) ORDER BY c.id_category
+        SELECT urbo_categories_usergraph(
+          s.id_scope,
+          ${user.id},
+          CASE
+            WHEN (s.parent_id_scope IS NULL) THEN true
+            ELSE false
+          END,
+          ${user.superadmin}
+        )
       ) AS categories,
       array(
         SELECT

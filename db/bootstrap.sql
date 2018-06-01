@@ -37,6 +37,7 @@
 \ir common/urbo_create_graph_for_scope.sql
 \ir common/urbo_metadata_usergraph.sql
 \ir common/urbo_multiscope_childs_usergraph.sql
+\ir common/urbo_categories_usergraph.sql
 
 -- Carto
 -- CARTO \ir carto/urbo_compute_geodesic_lines.sql

@@ -23,6 +23,8 @@
 --------------------------------------------------------------------------------
 -- HOW TO USE:
 --  SELECT urbo_multiscope_childs_usergraph('juntadeandalucia', 133);
+--
+-- SELECT urbo_categories_usergraph('juntadeandalucia', 133);
 --------------------------------------------------------------------------------
 
 
@@ -49,5 +51,41 @@ CREATE OR REPLACE FUNCTION urbo_multiscope_childs_usergraph(
     ) WHERE sc.parent_id_scope = $1
     )
     SELECT id_scope::text FROM multiscope_childs;
+
+$$ LANGUAGE sql;
+
+
+DROP FUNCTION IF EXISTS urbo_categories_usergraph(text, integer, boolean,
+  boolean);
+
+CREATE OR REPLACE FUNCTION urbo_categories_usergraph(
+  id_scope text,
+  id_user integer,
+  is_parent boolean DEFAULT FALSE,
+  is_superadmin boolean DEFAULT FALSE
+  )
+  RETURNS SETOF text AS
+  $$
+    WITH RECURSIVE multiscope_childs(id_category, id_scope) AS (
+      SELECT
+        DISTINCT ON (cs.id_category)
+          cs.id_category, cs.id_scope
+      FROM metadata.categories_scopes cs
+      JOIN public.users_graph ug ON (
+      cs.id_category=ug.name
+      AND (TRUE = $4 OR
+        ($2 = ANY(ug.read_users)
+        OR $2 = ANY(ug.write_users))
+      )
+    ) WHERE cs.id_scope = ANY(
+      CASE WHEN $3 THEN array(
+        SELECT sp.id_scope::text
+        FROM metadata.scopes sp
+        WHERE sp.parent_id_scope = $1
+      )
+      ELSE array(SELECT $1) END
+    )
+    )
+    SELECT id_category::text FROM multiscope_childs;
 
 $$ LANGUAGE sql;
