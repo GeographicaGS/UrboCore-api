@@ -404,7 +404,7 @@ MetadataInstanceModel.prototype.getScopesWithMetadata = function(scope, user, cb
     scope = [scope];
 
   var users_data_qry = '';
-  var users_join_qry = '';
+  var users_flt_qry = '';
   var categ_qry = '';
   if (user.superadmin) {
     users_data_qry = `
@@ -425,7 +425,7 @@ MetadataInstanceModel.prototype.getScopesWithMetadata = function(scope, user, cb
       )  as users
     `;
   } else {
-    users_join_qry = `
+    users_flt_qry = `
       JOIN public.users_graph ug ON (
         s.id_scope=ug.name
         AND (
@@ -484,10 +484,9 @@ MetadataInstanceModel.prototype.getScopesWithMetadata = function(scope, user, cb
         WHERE s.id_scope = f.scope_id
       ) as frames,
       array(
-        SELECT
-          sc.id_scope
-        FROM metadata.scopes sc
-        WHERE sc.parent_id_scope = s.id_scope
+        SELECT urbo_multiscope_childs_usergraph(
+          s.id_scope, ${user.id}, ${user.superadmin}
+        )
       ) AS childs,
       array(
         SELECT
@@ -501,142 +500,23 @@ MetadataInstanceModel.prototype.getScopesWithMetadata = function(scope, user, cb
         )
         FROM metadata.scope_widgets_tokens
         WHERE id_scope = s.id_scope GROUP BY id_widget
-      ) as widgets
+      ) as widgets,
+      array(
+        SELECT to_jsonb(urbo_metadata_usergraph(
+          s.id_scope, ${user.id}, ${user.superadmin}
+        ))
+      ) as metadata
       ${users_data_qry}
     FROM metadata.scopes s
-    ${users_join_qry}
+    ${users_flt_qry}
     WHERE
       '{' || $1 || '}'='{}' OR
       s.id_scope=ANY(('{' || $1 || '}')::varchar[])
   `;
-  this.query(q,[scope], (err, s)=>{
-    if (err) {
-      log.error('Cannot execute sql query');
-      log.error(q);
-      return cb(err);
-    }
-
-    if (!s.rows.length) {
-      log.debug('No rows returned from query');
-      log.debug(q);
-      return cb(null, null);
-    }
-
-    // For each scope, we want to replace their child ids
-    // includes in .[].childs by the scope objects representing
-    // the childs, and including almost the same information than
-    // the parents. So we have to:
-    //   1. Guess which scopes did we retrieved (and store them in
-    //   ``retrievedScopes`` for reference).
-    //   2. Guess which scopes must be retrieved from the db. Those
-    //   are those scopes whose id is included as child of any of
-    //   the retrieved scopes, but were not retrieved in the first
-    //   query.
-    //   3. We add then the missing scopes to ``retrievedScopes``
-    //   in a second query.
-    //   4. We iterate each parent scope and replace the childs
-    //   scope id list with their respective scope objects.
-    let retrievedScopes = {};
-    for (let scope of s.rows) {
-      retrievedScopes[scope.id] = scope;
-    }
-
-    let childScopes = s.rows
-      .map((x)=>{return x.childs})
-      .reduce((x, y)=>{return x.concat(y)})
-    ;
-
-    let missingScopes = [...new Set(childScopes.filter((x)=>{return !scope[x]}))];
-
-    let retrieveMissingScopes;
-    if (!missingScopes.length) {
-      retrieveMissingScopes = Promise.resolve([])
-    } else {
-      retrieveMissingScopes = new Promise((accept, reject)=>{
-        _this.query(q, [missingScopes], function(err, sChilds) {
-          if (err)
-            reject(err);
-          else
-            accept(sChilds.rows);
-        });
-      })
-    }
-
-    retrieveMissingScopes
-      .then((sChilds)=> {
-
-        for (let scope of sChilds) {
-          retrievedScopes[scope.id] = scope;
-        }
-
-        // Now that we have all scopes, we can proceed to retrieve all metadatas
-        let metadataPromise;
-
-        if (user) {
-          metadataPromise = Promise
-            .all(Object.keys(retrievedScopes).map((scope_id) => {
-              return this
-                .getMetadataForScope(scope_id, user)
-                .then((medatata) => {
-                  return [scope_id, medatata]
-                });
-            }))
-            .then((scopeMetas)=>{
-              return _.object(scopeMetas)
-            })
-          ;
-        } else {
-          metadataPromise = Promise.resolve(null);
-        }
-
-        return metadataPromise;
-      })
-      .then((scopeMetas)=>{
-
-        let scopes = s.rows
-          .map((scope)=>{
-            let isMultiscope = !!scope.childs;
-
-            scope.childs = scope.childs
-              .map((childScopeName)=>{
-                if (retrievedScopes[childScopeName]) {
-                  let childObject = retrievedScopes[childScopeName];
-
-                  if (scopeMetas !== null)
-                    childObject.metadata = scopeMetas[childScopeName] || [];
-
-                  return _.omit(childObject, ['multi', 'childs', 'parent_id']);
-                } else {
-                  return null;
-                }
-              })
-              .filter((s)=>s!==null)
-            ;
-
-            if (scopeMetas !== null)
-              scope.metadata = scopeMetas[scope.id] || [];
-
-            // Multiscopes whithout any child accesible by the current user must
-            // not be shown
-            if (isMultiscope && !scope.childs) {
-              return null;
-            } else {
-              return scope;
-            }
-          })
-          .filter((s)=>s!==null)
-        ;
-
-        return cb(null, scopes);
-      })
-      .catch((err)=>{
-        log.error('Cannot execute sql query');
-        log.error(q);
-        return cb(err);
-      })
-    ;
+  return this.query(q, [scope], function(err, d) {
+    if (err) return cb(err);
+    return cb(null, d.rows);
   });
-
 };
 
 MetadataInstanceModel.prototype.getScope = function(scope, user, cb) {
