@@ -88,20 +88,24 @@ CREATE OR REPLACE FUNCTION urbo_metadata_usergraph(
           mdt.entity_mandatory,
           mdt.entity_table_name,
           mdt.entity_editable,
-          json_agg(
-            json_build_object(
-              'id', mdt.id_variable,
-              'id_entity', mdt.id_entity,
-              'name', mdt.var_name,
-              'units', mdt.var_units,
-              'var_thresholds', mdt.var_thresholds,
-              'var_agg', mdt.var_agg,
-              'reverse', mdt.var_reverse,
-              'mandatory', mdt.var_mandatory,
-              'editable', mdt.var_editable,
-              'table_name', mdt.table_name
-            )
-          ) as variables
+          array_remove(array_agg(
+            CASE
+              WHEN mdt.id_variable IS NOT NULL THEN
+                jsonb_build_object(
+                  'id', mdt.id_variable,
+                  'id_entity', mdt.id_entity,
+                  'name', mdt.var_name,
+                  'units', mdt.var_units,
+                  'var_thresholds', mdt.var_thresholds,
+                  'var_agg', mdt.var_agg,
+                  'reverse', mdt.var_reverse,
+                  'mandatory', mdt.var_mandatory,
+                  'editable', mdt.var_editable,
+                  'table_name', mdt.table_name
+                )
+              ELSE NULL
+            END
+          ), NULL) as variables
         FROM search_graph sg
         JOIN (
           SELECT DISTINCT
@@ -113,12 +117,12 @@ CREATE OR REPLACE FUNCTION urbo_metadata_usergraph(
                 WHEN v.table_name IS NULL THEN e.table_name
                 ELSE v.table_name
               END) AS table_name,
+            e.id_entity,
             e.entity_name,
             e.mandatory AS entity_mandatory,
             e.table_name AS entity_table_name,
             e.editable AS entity_editable,
             v.id_variable AS id_variable,
-            v.id_entity,
             v.var_name,
             v.var_units,
             v.var_thresholds,
@@ -136,7 +140,7 @@ CREATE OR REPLACE FUNCTION urbo_metadata_usergraph(
           LEFT JOIN metadata.variables_scopes v
             ON v.id_entity = e.id_entity AND v.id_scope = s.id_scope
           WHERE s.id_scope = $1
-        ) mdt ON sg.name = mdt.id_variable
+        ) mdt ON (sg.name = mdt.id_variable OR (mdt.id_variable IS NULL AND sg.name=mdt.id_entity))
         GROUP BY mdt.category_name, mdt.id_category, mdt.nodata,
         mdt.category_config, mdt.id_entity, mdt.entity_name,
         mdt.entity_mandatory, mdt.entity_editable, mdt.entity_table_name

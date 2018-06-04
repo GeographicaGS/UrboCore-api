@@ -101,6 +101,8 @@ CREATE OR REPLACE FUNCTION urbo_categories_ddl(
         );
 
         SELECT urbo_createtables_%2$s(%1$L, ''%4$s'');
+
+        SELECT urbo_create_graph_for_scope(%1$L, %2$L);
     ',
         id_scope,
         category,

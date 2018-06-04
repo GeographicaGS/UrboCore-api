@@ -78,13 +78,13 @@ CREATE OR REPLACE FUNCTION urbo_categories_usergraph(
         OR $2 = ANY(ug.write_users))
       )
     ) WHERE cs.id_scope = ANY(
-      CASE WHEN $3 THEN array(
-        SELECT sp.id_scope::text
-        FROM metadata.scopes sp
-        WHERE sp.parent_id_scope = $1
+        CASE WHEN $3 THEN array(
+           SELECT sp.id_scope::text
+           FROM metadata.scopes sp
+           WHERE sp.parent_id_scope = $1
+        )
+        ELSE array(SELECT $1) END
       )
-      ELSE array(SELECT $1) END
-    )
     )
     SELECT id_category::text FROM multiscope_childs;
 
