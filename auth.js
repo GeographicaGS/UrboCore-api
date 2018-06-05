@@ -256,7 +256,7 @@ module.exports.validateVariables = function(ident){
       validElements(opts, function(err, valids){
         if(err || !valids || !valids.length){
           var error = new Error('Forbidden or not found variables: ' + JSON.stringify(variables));
-          error.status = 403;
+          error.status = 404;
           return next(error);
         }
 
