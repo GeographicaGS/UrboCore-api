@@ -135,7 +135,7 @@ function validElements(opts,cb){
 
     check.checkNodesFN({
       nodes: nodes,
-      user_id: opts.user_id,
+      user: opts.user,
       ops: opts.ops
     },function(err,data){
       if (err)
@@ -166,7 +166,7 @@ function validScopes(opts,cb){
 
     check.checkNodesFN({
       nodes: nodes,
-      user_id: opts.user_id,
+      user: opts.user,
       ops: opts.ops
     },function(err,data){
       if (err)
@@ -249,12 +249,12 @@ module.exports.validateVariables = function(ident){
 
       var opts = {
         scope: scope,
-        user_id: user_id,
+        user: res.user,
         elements: variables
       };
 
       validElements(opts, function(err, valids){
-        if(err || !valids){
+        if(err || !valids || !valids.length){
           var error = new Error('Forbidden or not found variables: ' + JSON.stringify(variables));
           error.status = 403;
           return next(error);

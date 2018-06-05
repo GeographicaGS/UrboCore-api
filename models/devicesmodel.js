@@ -43,7 +43,7 @@ DevicesModel.prototype.queryData = function(sql,bindings,cb) {
   this.query(sql,bindings,cb);
 }
 
-DevicesModel.prototype.getDevicesMapByScope = function(scope,entities,user_id,cb) {
+DevicesModel.prototype.getDevicesMapByScope = function(scope,entities,user,cb) {
   /*
   *   [{
   *     "device_id":"watering.sosteco.weatherstation:es1",
@@ -65,7 +65,7 @@ DevicesModel.prototype.getDevicesMapByScope = function(scope,entities,user_id,cb
 
       auth.validElements({
         scope: scope,
-        user_id: user_id,
+        user: user,
         elements : d.rows.map(function(r) {
           return r.id_entity;
         })
@@ -106,7 +106,7 @@ DevicesModel.prototype.getDevicesMapByScope = function(scope,entities,user_id,cb
 }
 
 
-DevicesModel.prototype.getDevicesMapByEntity = function(scope,entities,geojson,geojsonCollection,user_id,cb) {
+DevicesModel.prototype.getDevicesMapByEntity = function(scope,entities,geojson,geojsonCollection,user,cb) {
   /*
   *   [{
   *     "device_id":"watering.sosteco.weatherstation:es1",
@@ -134,7 +134,7 @@ DevicesModel.prototype.getDevicesMapByEntity = function(scope,entities,geojson,g
 
       auth.validElements({
         scope: scope,
-        user_id: user_id,
+        user: user,
         elements : d.rows.map(function(r) {
           return r.id_entity;
         })
@@ -241,7 +241,7 @@ DevicesModel.prototype._getVarData = function(data,geojson,geojsonCollection) {
   return dt;
 }
 
-DevicesModel.prototype.getDeviceLastData = function(scope,deventity,devname,user_id,cb) {
+DevicesModel.prototype.getDeviceLastData = function(scope,deventity,devname,user,cb) {
 
   var metadata = new MetadataInstanceModel();
   metadata.getMetadataQueryForDeviceLastData(scope, deventity, (function(err, d) {
@@ -258,7 +258,7 @@ DevicesModel.prototype.getDeviceLastData = function(scope,deventity,devname,user
 
       auth.validElements({
         scope: scope,
-        user_id: user_id,
+        user: user,
         elements : d.vars_ids
       },
       (function(err, validvars) {

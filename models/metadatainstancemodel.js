@@ -269,7 +269,7 @@ MetadataInstanceModel.prototype.deleteScope = function(scope, cb) {
 
 };
 
-MetadataInstanceModel.prototype.getScopeList = function(user_id, multi, cb) {
+MetadataInstanceModel.prototype.getScopeList = function(user, multi, cb) {
   var q_start = ['SELECT s.id_scope AS id, s.scope_name AS name,',
 
     'array(SELECT DISTINCT c.id_category',
@@ -282,7 +282,7 @@ MetadataInstanceModel.prototype.getScopeList = function(user_id, multi, cb) {
     'AS categories,',
 
     '(SELECT count(*) FROM metadata.scopes sp JOIN public.users_graph ug ',
-    'ON (sp.id_scope=ug.name AND (' + user_id + ' = ANY(ug.read_users) OR '+ user_id +' = ANY(ug.write_users)))',
+    'ON (sp.id_scope=ug.name AND (' + user.id + ' = ANY(ug.read_users) OR '+ user.id +' = ANY(ug.write_users)))',
     'WHERE sp.status = 1 AND sp.parent_id_scope IS NOT NULL',
     'AND sp.parent_id_scope = s.id_scope)',
     'AS n_cities,',
@@ -328,7 +328,7 @@ MetadataInstanceModel.prototype.getScopeList = function(user_id, multi, cb) {
     });
 
     auth.validScopes({
-      user_id: user_id,
+      user: user,
       scopes : scopes
     }, function(err, valids) {
       if (err) {
@@ -353,7 +353,7 @@ MetadataInstanceModel.prototype.getScopeList = function(user_id, multi, cb) {
 
           var opts = {
             scope: row.id,
-            user_id: user_id,
+            user: user,
             elements: row.categories
           }
 
@@ -508,7 +508,7 @@ MetadataInstanceModel.prototype.getScopesWithMetadata = function(scope, user, cb
 MetadataInstanceModel.prototype.getScope = function(scope, user, cb) {
   var _this = this;
   var skipcheck = (user.id === cons.PUBLISHED);
-  var user_id = skipcheck ? 1 : user.id;
+  var user = skipcheck ? {id: 1} : user;
 
 
   var q = ['SELECT s.id_scope AS id, s.dbschema, s.scope_name AS name, s.parent_id_scope AS parent_id,',
@@ -524,7 +524,7 @@ MetadataInstanceModel.prototype.getScope = function(scope, user, cb) {
     's.timezone, ',
     'array(SELECT f.title FROM public.frames_scope f WHERE s.id_scope = f.scope_id) as frames',
     'FROM metadata.scopes s JOIN public.users_graph ug ON s.id_scope=ug.name',
-    'AND '+ user_id +' = ANY(ug.read_users)',
+    'AND '+ user.id +' = ANY(ug.read_users)',
     'WHERE s.id_scope = ANY ($1)'];
 
   this.query(q.join(' '), [[scope]], function(err, s) {
@@ -548,7 +548,7 @@ MetadataInstanceModel.prototype.getScope = function(scope, user, cb) {
 
       if (skipcheck) return cb(null, element);
 
-      var opts = {scope: element.id, user_id: user_id, elements: element.categories}
+      var opts = {scope: element.id, user: user, elements: element.categories}
       return auth.validElements(opts, function(err, valids) {
         if (err) {
           return cb(err);
@@ -584,7 +584,7 @@ MetadataInstanceModel.prototype.getScope = function(scope, user, cb) {
 
       var promises = [];
       _.each(element.childs, function(child) {
-        var opts = { scope: element.id, user_id: user_id, elements: child.categories };
+        var opts = { scope: element.id, user: user, elements: child.categories };
         promises.push(function() {
           return authValidElements(opts).then(function(valids) {
             // Skip duplicates
@@ -641,7 +641,7 @@ MetadataInstanceModel.prototype.getMetadataForScope = function(id_scope, user, c
         curPromise =
           authValidElements({
             scope: id_scope,
-            user_id: user.id,
+            user: user,
             elements: entities
           })
           .then((valids)=>{
@@ -661,7 +661,7 @@ MetadataInstanceModel.prototype.getMetadataForScope = function(id_scope, user, c
           curPromise =
             authValidElements({
               scope: id_scope,
-              user_id: user.id,
+              user: user,
               elements: variables
             })
             .then(function(valids) {
