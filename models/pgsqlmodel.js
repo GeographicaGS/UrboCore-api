@@ -110,6 +110,7 @@ PGSQLModel.prototype.promiseRow = function(data) {
 
 // The callback is optional, so if it isn't used it returns a promise
 PGSQLModel.prototype.pCachedQuery = function(sql, bindings) {
+
   var cacheKey = sql + ' - BINDINGS: ' + JSON.stringify(bindings);
   cacheKey = crypto.createHash('md5').update(cacheKey).digest('base64');
 
@@ -118,41 +119,38 @@ PGSQLModel.prototype.pCachedQuery = function(sql, bindings) {
     return this.promise_query(sql, bindings);
   }
 
-  return cache.getAsync(cacheKey)
-  .then((function(res) {
-    if (res !== null) {
-      log.debug('Retrieving data from cache');
-      return Promise.resolve(JSON.parse(res));
-    }
-    else {
-      // If the data doesn't exist in cache...
-      return this.promise_query(sql, bindings)
-      .then(function(res) {
-
-        return cache.setAsync(cacheKey, JSON.stringify(res), 'PX',  cache.keyTTL * 60 * 1000)
-        .then(function(resCache) {
-          log.debug('Retrieving data from database and storing it in cache');
-          return Promise.resolve(res);
-        })
-        .catch(function(err) {
-          log.error('Error saving the query result to the cache');
-          log.error(err);
-          return Promise.reject(err);
-        });
-
-      })
-      .catch(function(err) {
-        return Promise.reject(err);
-      });
-    }
-  }).bind(this))
-  .catch(function(err) {
-    log.error('Error getting the query result from the cache');
-    log.error(err);
-    return Promise.reject(err);
-  });
-
-}
+  return cache
+    .getAsync(cacheKey)
+    .then((rawData)=>{
+      if (rawData !== null) {
+        log.debug('Retrieving data from cache');
+        return JSON.parse(rawData);
+      }
+      else {
+        log.debug('Retrieving data from database and storing it in cache');
+        return this
+          .promise_query(sql, bindings)
+          .then((data)=>{
+            return cache
+              .setAsync(
+                cacheKey,
+                JSON.stringify(data),
+                'PX',
+                cache.keyTTL * 60 * 1000
+              )
+              .then(() => data)
+            ;
+          })
+          .catch(function(err) {
+            log.error('Error saving the query result to the cache');
+            log.error(err);
+            return Promise.reject(err);
+          })
+        ;
+      }
+    })
+  ;
+};
 
 PGSQLModel.prototype.cachedQuery = function(sql, bindings, cb) {
   return this.pCachedQuery(sql, bindings)
