@@ -101,7 +101,8 @@ CREATE OR REPLACE FUNCTION urbo_metadata_usergraph(
                   'reverse', mdt.var_reverse,
                   'mandatory', mdt.var_mandatory,
                   'editable', mdt.var_editable,
-                  'table_name', mdt.table_name
+                  'table_name', mdt.table_name,
+                  'config', mdt.config
                 )
               ELSE NULL
             END

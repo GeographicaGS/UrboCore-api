@@ -92,155 +92,153 @@ VariablesModel.prototype.getVariableAgg = function(opts,cb) {
 
 VariablesModel.prototype.getVariablesTimeSerie = function(opts) {
   var metadata = new MetadataInstanceModel();
-  return metadata.getVarQueryArrayMultiEnt(opts.scope, opts.id_vars.join(','))
+  return metadata
+    .getVarQueryArrayMultiEnt(opts.scope, opts.id_vars.join(','))
+    .then((data)=>{
+      return this.promiseRow(data);
+    })
+    .then(function(d) {
+      var qb = new QueryBuilder(opts);
+      // var filter = `${qb.bbox()} ${qb.filter()}`;
+      //
+      // // UGLY HACK
+      // filter = filter.replace('position', 'foo.position');
 
-  .then(function(data) {
-    return this.promiseRow(data);
-  }.bind(this))
+      var aggs = opts.agg;
+      var bodyVarIds = opts.id_vars;
+      var step = modelutils.getSQLFormattedStep(opts.step);
 
-  .then(function(d) {
-    var qb = new QueryBuilder(opts);
-    var filter = `${qb.bbox()} ${qb.filter()}`;
+      var schema = d.dbschema;
+      var tableNames = d.tablenames;
+      var entityTables = d.entitytables;
+      var varNames = d.vars;
+      var varIds = d.vars_ids;
 
-    // UGLY HACK
-    filter = filter.replace('position', 'foo.position');
+      // Group by feature
+      var groupBy = null;
+      var groupTable = null;
+      if (opts.filters.group && varIds.indexOf(opts.filters.group) >= 0) {
+        var i = varIds.indexOf(opts.filters.group);
+        var entityTable = entityTables.splice(i, 1)[0];
+        groupBy = varNames.splice(i, 1)[0];
+        groupTable = tableNames.splice(i, 1)[0];
+        varIds.splice(i, 1);
 
-    var aggs = opts.agg;
-    var bodyVarIds = opts.id_vars;
-    var step = modelutils.getSQLFormattedStep(opts.step);
-
-    var schema = d.dbschema;
-    var tableNames = d.tablenames;
-    var entityTables = d.entitytables;
-    var varNames = d.vars;
-    var varIds = d.vars_ids;
-
-    // Group by feature
-    var groupBy = null;
-    var groupTable = null;
-    if (opts.filters.group && varIds.indexOf(opts.filters.group) >= 0) {
-      var i = varIds.indexOf(opts.filters.group);
-      var entityTable = entityTables.splice(i, 1)[0];
-      groupBy = varNames.splice(i, 1)[0];
-      groupTable = tableNames.splice(i, 1)[0];
-      varIds.splice(i, 1);
-
-      if (groupTable === entityTable) {
-        groupTable = groupTable + '_lastdata';
+        if (groupTable === entityTable) {
+          groupTable = groupTable + '_lastdata';
+        }
       }
-    }
 
-    if (bodyVarIds.indexOf(opts.filters.group) >= 0) {
-      var i = bodyVarIds.indexOf(opts.filters.group);
-      bodyVarIds.splice(i, 1);
-    }
+      if (bodyVarIds.indexOf(opts.filters.group) >= 0) {
+        var i = bodyVarIds.indexOf(opts.filters.group);
+        bodyVarIds.splice(i, 1);
+      }
 
-    // Adding the varIds (and their varNames and tableNames) that may have disappeared because they are repeated
-    var missingVarIds = JSON.parse(JSON.stringify(bodyVarIds));
-    for (var varId of varIds) {
-      var i = missingVarIds.indexOf(varId);
-      missingVarIds.splice(i, 1);
-    }
+      // Adding the varIds (and their varNames and tableNames) that may have disappeared because they are repeated
+      var missingVarIds = JSON.parse(JSON.stringify(bodyVarIds));
+      for (var varId of varIds) {
+        var i = missingVarIds.indexOf(varId);
+        missingVarIds.splice(i, 1);
+      }
 
-    for (var missingVarId of missingVarIds) {
-      var i = varIds.indexOf(missingVarId);
+      for (var missingVarId of missingVarIds) {
+        var i = varIds.indexOf(missingVarId);
 
-      tableNames.push(tableNames[i]);
-      entityTables.push(entityTables[i]);
-      varNames.push(varNames[i]);
-      varIds.push(varIds[i]);
-    }
+        tableNames.push(tableNames[i]);
+        entityTables.push(entityTables[i]);
+        varNames.push(varNames[i]);
+        varIds.push(varIds[i]);
+      }
 
-    // Ordering the aggs according to the query result
-    var aggsCopy = JSON.parse(JSON.stringify(aggs));
-    aggs = _.map(varIds, function(varId) {
-      var i = bodyVarIds.indexOf(varId);
-      var agg = aggsCopy[i];
+      // Ordering the aggs according to the query result
+      var aggsCopy = JSON.parse(JSON.stringify(aggs));
+      aggs = _.map(varIds, function(varId) {
+        var i = bodyVarIds.indexOf(varId);
+        var agg = aggsCopy[i];
 
-      bodyVarIds.splice(i, 1);
-      aggsCopy.splice(i, 1);
+        bodyVarIds.splice(i, 1);
+        aggsCopy.splice(i, 1);
 
-      return agg;
-    });
+        return agg;
+      });
 
-    var promises = [varIds, aggs];
-    for (var i in varNames) {
-      promises.push((function() {
-        var groupColumn = '';
-        var groupAlias = '';
-        var cGroupAlias = '';
-        var from = `${ schema }.${ tableNames[i] }`;
+      var promises = [varIds, aggs];
+      for (var i in varNames) {
+        promises.push((function() {
+          var groupColumn = '';
+          var groupAlias = '';
+          var cGroupAlias = '';
+          var from = `${ schema }.${ tableNames[i] }`;
 
-        if (groupBy && groupTable !== tableNames[i]) {
-          groupColumn = `"${ groupBy }"`;
-          groupAlias = `"${ opts.filters.group }"`;
-          cGroupAlias = `, ${ groupAlias }`
-          from = `(
-              SELECT l."TimeInstant" as "TimeInstant", l.id_entity, l."${ varNames[i] }", r.${ groupColumn } AS ${ groupAlias }
-                FROM ${ schema }.${ tableNames[i] } l
-                  LEFT JOIN ${ schema }.${ entityTable + '_lastdata' /* TODO: Use groupTable when variable is an aggretagated one: groupTable */ } r
-                    ON l.id_entity = r.id_entity
-            )`;
-        }
+          if (groupBy && groupTable !== tableNames[i]) {
+            groupColumn = `"${ groupBy }"`;
+            groupAlias = `"${ opts.filters.group }"`;
+            cGroupAlias = `, ${ groupAlias }`
+            from = `(
+                SELECT l."TimeInstant" as "TimeInstant", l.id_entity, l."${ varNames[i] }", r.${ groupColumn } AS ${ groupAlias }
+                  FROM ${ schema }.${ tableNames[i] } l
+                    LEFT JOIN ${ schema }.${ entityTable + '_lastdata' /* TODO: Use groupTable when variable is an aggretagated one: groupTable */ } r
+                      ON l.id_entity = r.id_entity
+              )`;
+          }
 
-        var sql = `
-          WITH filtered AS (
-             SELECT
-               DISTINCT id_entity
-             FROM ${schema}.${entityTables[i]}_lastdata
-             WHERE true
-             ${qb.bbox()}
-             ${qb.filter()}
-          )
-          SELECT
-            _timeserie AS start,
-            (_timeserie + '${step}')::timestamp AS finish,
-            ${aggs[i]}(foo."${varNames[i]}") AS "${varIds[i]}_${aggs[i]}"${ cGroupAlias }
-          FROM generate_series('${opts.start}'::timestamp, '${opts.finish}'::timestamp, '${ step }') AS _timeserie
-          LEFT JOIN ${ from } foo
-          ON foo."TimeInstant" >= _timeserie AND foo."TimeInstant" < _timeserie + '${ step }'
-          WHERE id_entity IN (SELECT id_entity FROM filtered)
-          GROUP BY _timeserie${ cGroupAlias } ORDER BY _timeserie`;
-
-        if (opts.findTimes && (aggs[i] === 'MIN' || aggs[i] === 'MAX')) {
-          var preSQL = `
+          var sql = `
+            WITH filtered AS (
+               SELECT
+                 DISTINCT id_entity
+               FROM ${schema}.${entityTables[i]}_lastdata
+               WHERE true
+               ${qb.bbox()}
+               ${qb.filter()}
+            )
             SELECT
-              baz.start,
-              baz.finish,
-              baz."${varIds[i]}_${aggs[i]}",
-              array_agg(quz."TimeInstant") AS times${ cGroupAlias } FROM (
-          `;
+              _timeserie AS start,
+              (_timeserie + '${step}')::timestamp AS finish,
+              ${aggs[i]}(foo."${varNames[i]}") AS "${varIds[i]}_${aggs[i]}"${ cGroupAlias }
+            FROM generate_series('${opts.start}'::timestamp, '${opts.finish}'::timestamp, '${ step }') AS _timeserie
+            LEFT JOIN ${ from } foo
+            ON foo."TimeInstant" >= _timeserie AND foo."TimeInstant" < _timeserie + '${ step }'
+            WHERE id_entity IN (SELECT id_entity FROM filtered)
+            GROUP BY _timeserie${ cGroupAlias } ORDER BY _timeserie`;
 
-          var postSQL = `
-              ) baz
-              JOIN ${ from } quz
-              ON quz."TimeInstant" >= baz.start AND quz."TimeInstant" < baz.finish
-              WHERE baz."${varIds[i]}_${aggs[i]}" = quz."${varNames[i]}"
-              GROUP BY baz.start, baz.finish, baz."${varIds[i]}_${aggs[i]}"${ cGroupAlias }
-              ORDER BY baz.start`;
+          if (opts.findTimes && (aggs[i] === 'MIN' || aggs[i] === 'MAX')) {
+            var preSQL = `
+              SELECT
+                baz.start,
+                baz.finish,
+                baz."${varIds[i]}_${aggs[i]}",
+                array_agg(quz."TimeInstant") AS times${ cGroupAlias } FROM (
+            `;
 
-          sql = `${preSQL} ${sql} ${postSQL}`;
-        }
+            var postSQL = `
+                ) baz
+                JOIN ${ from } quz
+                ON quz."TimeInstant" >= baz.start AND quz."TimeInstant" < baz.finish
+                WHERE baz."${varIds[i]}_${aggs[i]}" = quz."${varNames[i]}"
+                GROUP BY baz.start, baz.finish, baz."${varIds[i]}_${aggs[i]}"${ cGroupAlias }
+                ORDER BY baz.start`;
 
-        return this.cachedQuery(sql);
+            sql = `${preSQL} ${sql} ${postSQL}`;
+          }
 
-      }).bind(this)());
-    }
+          return this.cachedQuery(sql);
 
-    if (groupBy) {
-      promises.push(opts.filters.group);
-    }
+        }).bind(this)());
+      }
 
-    return Promise.all(promises);
-  }.bind(this))
+      if (groupBy) {
+        promises.push(opts.filters.group);
+      }
 
-  .then(function(data) {
-    return new VariablesFormatter().timeSerie(data);
-  })
+      return Promise.all(promises);
+    }.bind(this))
 
-  .catch(function(err) {
-    return Promise.reject(err);
-  });
+    .then(function(data) {
+      return new VariablesFormatter().timeSerie(data);
+    })
+    .catch(function(err) {
+      return Promise.reject(err);
+    });
 };
 
 VariablesModel.prototype.addVariable = function(scope, data, cb) {
