@@ -34,6 +34,7 @@ var VariablesFormatter = require('../protools/variablesformatter');
 var DummyFormatter = require('../protools/dummyformatter');
 var RankingFormatter = require('../protools/rankingformatter');
 var log = utils.log();
+var _ = require('underscore');
 
 function VariablesModel(cfg) {
   PGSQLModel.call(this,cfg);
@@ -941,40 +942,36 @@ VariablesModel.prototype.getVariablesDailyAgg = function(opts) {
 
 VariablesModel.prototype.rankingNow = function(opts) {
   var metadata = new MetadataInstanceModel();
-  return metadata.getVarQueryArrayMultiEnt(opts.scope, opts.id_vars.join(','))
+  return metadata
+    .getVarQueryArrayMultiEnt(opts.scope, opts.id_vars.join(','))
 
-  .then(function(data) {
-    return this.promiseRow(data);
-  }.bind(this))
+    .then(function(data) {
+      return this.promiseRow(data);
+    }.bind(this))
 
-  .then(function(data) {
-    var qb = new QueryBuilder(opts);
-    var filter = `${qb.bbox()} ${qb.filter()}`;
+    .then(function(data) {
+      var qb = new QueryBuilder(opts);
+      var filter = `${qb.bbox()} ${qb.filter()}`;
 
-    var varIds = data.vars_ids;
-    var varNames = data.vars;
+      var varIds = data.vars_ids;
+      var varNames = data.vars;
 
-    var varOrder = varNames[varIds.indexOf(opts.var_order)];
-    var order = opts.order || 'DESC';
-    var limit = opts.limit ? `LIMIT ${opts.limit}` : '';
+      var varOrder = varNames[varIds.indexOf(opts.var_order)];
+      var order = opts.order || 'DESC';
+      var limit = opts.limit ? `LIMIT ${opts.limit}` : '';
 
-    var sql = `SELECT "${varNames.join('", "')}"
-        FROM ${data.dbschema}.${data.entitytables[0]}_lastdata
-        WHERE true
-        ${filter}
-        AND ${varOrder} IS NOT NULL
-        ORDER BY ${varOrder} ${order} ${limit};`;
+      var sql = `SELECT "${varNames.join('", "')}"
+          FROM ${data.dbschema}.${data.entitytables[0]}_lastdata
+          WHERE true
+          ${filter}
+          AND ${varOrder} IS NOT NULL
+          ORDER BY ${varOrder} ${order} ${limit};`;
 
-    return this.cachedQuery(sql)
-  }.bind(this))
-
-  .then(function(data) {
-    return new VariablesFormatter().ranking(data);
-  })
-
-  .catch(function(err) {
-    return Promise.reject(err);
-  });
+      return this.cachedQuery(sql)
+    }.bind(this))
+    .then(function(data) {
+      return new VariablesFormatter().ranking(data);
+    })
 };
 
 VariablesModel.prototype.rankingHistoric = function (opts) {

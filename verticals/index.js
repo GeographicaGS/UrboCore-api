@@ -38,8 +38,13 @@ let verticalsLoader = function(app) {
     let routesFile = `${verticalDir}/${routesFileName}`;
     let configFile = `${verticalDir}/${configFileName}`;
 
+    let verticalsRealDirName = fs.lstatSync(verticalDir).isSymbolicLink()
+      ? fs.realpathSync(verticalDir)
+      : verticalDir
+    ;
+
     // Checking that 'routes.js' exists
-    if (fs.lstatSync(verticalDir).isDirectory() && fs.existsSync(routesFile)
+    if (fs.lstatSync(verticalsRealDirName).isDirectory() && fs.existsSync(routesFile)
         && fs.lstatSync(routesFile).isFile()) {
       let importVerticalString = `${thisDir}/${vertical}/${routesFileName}`;
       let verticalModule = require(importVerticalString);

@@ -459,8 +459,8 @@ router.post('/:id/histogram/timeserie/continuous',
 *           YYYY-MM-DDT00:00:00. No default.
 */
 function parseTimeParameters(req,res,next) {
-  var start = req.query.start || req.body.time.start;
-  var finish = req.query.finish || req.body.time.finish;
+  var start = req.query.start || req.body.time && req.body.time.start;
+  var finish = req.query.finish || req.body.time && req.body.time.finish;
 
   if (!start) {
     return next(utils.error('Missing time parameter [start] (mandatory)',400));

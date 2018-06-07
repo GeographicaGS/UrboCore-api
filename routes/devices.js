@@ -40,7 +40,7 @@ router.get('/map',
   function(req, res, next) {
 
     var model = new DevicesModel();
-    model.getDevicesMapByScope(req.scope,req.query.entities,res.user.id,function(err,r) {
+    model.getDevicesMapByScope(req.scope,req.query.entities,res.user,function(err,r) {
       if (err) {
         log.error('Devices map: Error when selecting data');
         next(err);
@@ -62,7 +62,7 @@ router.get('/mapentities',
     var geojson = req.query.geojson || false;
     var geojsonCollection = req.query.geojson_collection || false;
     var model = new DevicesModel();
-    model.getDevicesMapByEntity(req.scope,req.query.entities,geojson,geojsonCollection,res.user.id,function(err,r) {
+    model.getDevicesMapByEntity(req.scope,req.query.entities,geojson,geojsonCollection,res.user,function(err,r) {
       if (err) {
         log.error('Devices map entities: Error when selecting data');
         next(err);
@@ -92,7 +92,7 @@ router.get('/:id_entity/:id_device/lastdata',
     if (!id_entity||!id_device)
       return next(utils.error('Bad parameters',400));
 
-    model.getDeviceLastData(req.scope, id_entity,id_device,res.user.id,function(err,r) {
+    model.getDeviceLastData(req.scope, id_entity,id_device,res.user,function(err,r) {
       if (err) {
         log.error('Device info: Error when selecting data');
         next(err);

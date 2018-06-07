@@ -39,9 +39,9 @@ ScopeModel.prototype.queryData = function(sql, bindings, cb) {
   this.query(sql, bindings, cb);
 }
 
-ScopeModel.prototype.getScopeList = function(user_id, multi, cb) {
+ScopeModel.prototype.getScopeList = function(user, multi, cb) {
   var metadata = new MetadataInstanceModel();
-  return metadata.getScopeList(user_id, multi, cb);
+  return metadata.getScopeList(user, multi, cb);
 }
 
 ScopeModel.prototype.getScopeMetadata = function(scope, user, cb) {
