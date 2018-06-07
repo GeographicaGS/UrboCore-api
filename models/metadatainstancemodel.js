@@ -41,10 +41,6 @@ function MetadataInstanceModel(cfg) {
 
 util.inherits(MetadataInstanceModel, MetadataModel);
 
-MetadataInstanceModel.prototype.getAdminScopes = function(user, cb) {
-  this.getScopeForAdmin(null, user, cb);
-};
-
 /*
 {
   "name": "Junta de Andalucía",
@@ -273,7 +269,7 @@ MetadataInstanceModel.prototype.deleteScope = function(scope, cb) {
 
 };
 
-MetadataInstanceModel.prototype.getScopeList = function(user_id, multi, cb) {
+MetadataInstanceModel.prototype.getScopeList = function(user, multi, cb) {
   var q_start = ['SELECT s.id_scope AS id, s.scope_name AS name,',
 
     'array(SELECT DISTINCT c.id_category',
@@ -286,7 +282,7 @@ MetadataInstanceModel.prototype.getScopeList = function(user_id, multi, cb) {
     'AS categories,',
 
     '(SELECT count(*) FROM metadata.scopes sp JOIN public.users_graph ug ',
-    'ON (sp.id_scope=ug.name AND (' + user_id + ' = ANY(ug.read_users) OR '+ user_id +' = ANY(ug.write_users)))',
+    'ON (sp.id_scope=ug.name AND (' + user.id + ' = ANY(ug.read_users) OR '+ user.id +' = ANY(ug.write_users)))',
     'WHERE sp.status = 1 AND sp.parent_id_scope IS NOT NULL',
     'AND sp.parent_id_scope = s.id_scope)',
     'AS n_cities,',
@@ -332,7 +328,7 @@ MetadataInstanceModel.prototype.getScopeList = function(user_id, multi, cb) {
     });
 
     auth.validScopes({
-      user_id: user_id,
+      user: user,
       scopes : scopes
     }, function(err, valids) {
       if (err) {
@@ -357,7 +353,7 @@ MetadataInstanceModel.prototype.getScopeList = function(user_id, multi, cb) {
 
           var opts = {
             scope: row.id,
-            user_id: user_id,
+            user: user,
             elements: row.categories
           }
 
@@ -399,7 +395,7 @@ MetadataInstanceModel.prototype.getReducedScopes = function(cb) {
 }
 
 
-MetadataInstanceModel.prototype.getScopeForAdmin = function(scope, user, cb) {
+MetadataInstanceModel.prototype.getScopesWithMetadata = function(scope, user, cb) {
   var _this = this;
 
   if (!scope)
@@ -407,181 +403,112 @@ MetadataInstanceModel.prototype.getScopeForAdmin = function(scope, user, cb) {
   else
     scope = [scope];
 
+  var users_data_qry = '';
+  var users_flt_qry = '';
+  if (user.superadmin) {
+    users_data_qry = `
+      ,array(
+        SELECT
+          json_build_object(
+            'name', name,
+            'surname', surname
+          )
+        FROM public.users
+        WHERE
+            users_id = ANY((
+              SELECT read_users
+              FROM public.users_graph
+              WHERE name=s.id_scope
+            )::bigint[])
+        GROUP BY users_id
+      )  as users
+    `;
+  } else {
+    users_flt_qry = `
+      JOIN public.users_graph ug ON (
+        s.id_scope=ug.name
+        AND (
+          ${user.id} = ANY(ug.read_users)
+          OR ${user.id} = ANY(ug.write_users)
+        )
+      )
+    `;
+  }
+
   var q = `
-    SELECT 
-      s.id_scope as id, 
+    SELECT
+      s.id_scope as id,
       s.dbschema,
-      s.scope_name as name, 
-      s.status, 
+      s.scope_name as name,
+      s.status,
       s.timezone,
-      s.parent_id_scope AS parent_id, 
+      s.parent_id_scope AS parent_id,
       ARRAY[
         ST_Y(s.geom),
         ST_X(s.geom)
       ] as location,
       s.zoom,
-      CASE 
-        WHEN (s.parent_id_scope IS NULL) THEN true 
-        ELSE false 
-      END AS multi, 
+      CASE
+        WHEN (s.parent_id_scope IS NULL) THEN true
+        ELSE false
+      END AS multi,
       array(
-        SELECT DISTINCT 
-          c.id_category 
-        FROM metadata.categories_scopes c 
-        WHERE 
-          s.status = 1 AND 
-          c.id_scope = s.id_scope 
-        ORDER BY c.id_category 
-      ) AS categories,  
+        SELECT urbo_categories_usergraph(
+          s.id_scope,
+          ${user.id},
+          CASE
+            WHEN (s.parent_id_scope IS NULL) THEN true
+            ELSE false
+          END,
+          ${user.superadmin}
+        )
+      ) AS categories,
       array(
-        SELECT 
-          json_build_object(
-            'name', name, 
-            'surname', surname
-          ) 
-        FROM public.users  
-        WHERE 
-            users_id = ANY((
-              SELECT read_users 
-              FROM public.users_graph 
-              WHERE name=s.id_scope 
-            )::bigint[]) 
-        GROUP BY users_id
-      )  as users,
-      array(
-        SELECT 
-          f.title 
-        FROM public.frames_scope f 
+        SELECT
+          f.title
+        FROM public.frames_scope f
         WHERE s.id_scope = f.scope_id
       ) as frames,
       array(
-        SELECT 
-          sc.id_scope 
-        FROM metadata.scopes sc 
-        WHERE sc.parent_id_scope = s.id_scope
-      ) AS childs
-    FROM metadata.scopes s 
-    WHERE 
-      '{' || $1 || '}'='{}' OR 
+        SELECT urbo_multiscope_childs_usergraph(
+          s.id_scope, ${user.id}, ${user.superadmin}
+        )
+      ) AS childs,
+      array(
+        SELECT
+        json_build_object(
+          'widget', id_widget,
+          'published', json_agg(
+            json_build_object(
+              'name',publish_name,
+              'token',token)
+          )
+        )
+        FROM metadata.scope_widgets_tokens
+        WHERE id_scope = s.id_scope GROUP BY id_widget
+      ) as widgets,
+      array(
+        SELECT to_jsonb(urbo_metadata_usergraph(
+          s.id_scope, ${user.id}, ${user.superadmin}
+        ))
+      ) as metadata
+      ${users_data_qry}
+    FROM metadata.scopes s
+    ${users_flt_qry}
+    WHERE
+      '{' || $1 || '}'='{}' OR
       s.id_scope=ANY(('{' || $1 || '}')::varchar[])
   `;
-
-  this.query(q,[scope], (err, s)=>{
-    if (err) {
-      log.error('Cannot execute sql query');
-      log.error(q);
-      return cb(err);
-    }
-
-    if (!s.rows.length) {
-      log.debug('No rows returned from query');
-      log.debug(q);
-      return cb(null, null);
-    }
-
-    // For each scope, we want to replace their child ids
-    // includes in .[].childs by the scope objects representing
-    // the childs, and including almost the same information than
-    // the parents. So we have to:
-    //   1. Guess which scopes did we retrieved (and store them in
-    //   ``retrievedScopes`` for reference).
-    //   2. Guess which scopes must be retrieved from the db. Those
-    //   are those scopes whose id is included as child of any of
-    //   the retrieved scopes, but were not retrieved in the first
-    //   query.
-    //   3. We add then the missing scopes to ``retrievedScopes``
-    //   in a second query.
-    //   4. We iterate each parent scope and replace the childs
-    //   scope id list with their respective scope objects.
-    let retrievedScopes = {};
-    for (let scope of s.rows) {
-      retrievedScopes[scope.id] = scope;
-    }
-
-    let childScopes = s.rows
-      .map((x)=>{return x.childs})
-      .reduce((x, y)=>{return x.concat(y)})
-    ;
-
-    let missingScopes = [...new Set(childScopes.filter((x)=>{return !scope[x]}))];
-
-    let retrieveMissingScopes;
-    if (!missingScopes.length) {
-      retrieveMissingScopes = Promise.resolve([])
-    } else {
-      retrieveMissingScopes = new Promise((accept, reject)=>{
-        _this.query(q, [missingScopes], function(err, sChilds) {
-          if (err)
-            reject(err);
-          else
-            accept(sChilds.rows);
-        });
-      })
-    }
-
-    retrieveMissingScopes
-      .then((sChilds)=> {
-
-        for (let scope of sChilds) {
-          retrievedScopes[scope.id] = scope;
-        }
-
-        // Now that we have all scopes, we can proceed to retrieve all metadatas
-        let metadataPromise;
-
-        if (user) {
-          metadataPromise = Promise
-            .all(Object.keys(retrievedScopes).map((scope_id) => {
-              return this
-                .getMetadataForScope(scope_id, user)
-                .then((medatata) => {
-                  return [scope_id, medatata]
-                });
-            }))
-            .then((scopeMetas)=>{
-              return _.object(scopeMetas)
-            })
-          ;
-        } else {
-          metadataPromise = Promise.resolve(null);
-        }
-
-        return metadataPromise;
-      })
-      .then((scopeMetas)=>{
-
-        let scopes = s.rows.map((scope)=>{
-          scope.childs = scope.childs.map((childScopeName)=>{
-            let childObject = retrievedScopes[childScopeName] || {'id': retrievedScopes};
-
-            if (scopeMetas !== null)
-              childObject.metadata = scopeMetas[childScopeName] || [];
-
-            return _.omit(childObject, ['multi', 'childs', 'parent_id']);
-          });
-
-          if (scopeMetas !== null)
-            scope.metadata = scopeMetas[scope.id] || [];
-
-          return scope
-        });
-  
-        return cb(null, scopes);
-      })
-      .catch((err)=>{
-        log.error('Cannot execute sql query');
-        log.error(q);
-        return cb(err);
-      })
-    ;
+  return this.query(q, [scope], function(err, d) {
+    if (err) return cb(err);
+    return cb(null, d.rows);
   });
-  
 };
 
 MetadataInstanceModel.prototype.getScope = function(scope, user, cb) {
   var _this = this;
   var skipcheck = (user.id === cons.PUBLISHED);
-  var user_id = skipcheck ? 1 : user.id;
+  var user = skipcheck ? {id: 1} : user;
 
 
   var q = ['SELECT s.id_scope AS id, s.dbschema, s.scope_name AS name, s.parent_id_scope AS parent_id,',
@@ -597,7 +524,7 @@ MetadataInstanceModel.prototype.getScope = function(scope, user, cb) {
     's.timezone, ',
     'array(SELECT f.title FROM public.frames_scope f WHERE s.id_scope = f.scope_id) as frames',
     'FROM metadata.scopes s JOIN public.users_graph ug ON s.id_scope=ug.name',
-    'AND '+ user_id +' = ANY(ug.read_users)',
+    'AND '+ user.id +' = ANY(ug.read_users)',
     'WHERE s.id_scope = ANY ($1)'];
 
   this.query(q.join(' '), [[scope]], function(err, s) {
@@ -621,7 +548,7 @@ MetadataInstanceModel.prototype.getScope = function(scope, user, cb) {
 
       if (skipcheck) return cb(null, element);
 
-      var opts = {scope: element.id, user_id: user_id, elements: element.categories}
+      var opts = {scope: element.id, user: user, elements: element.categories}
       return auth.validElements(opts, function(err, valids) {
         if (err) {
           return cb(err);
@@ -657,7 +584,7 @@ MetadataInstanceModel.prototype.getScope = function(scope, user, cb) {
 
       var promises = [];
       _.each(element.childs, function(child) {
-        var opts = { scope: element.id, user_id: user_id, elements: child.categories };
+        var opts = { scope: element.id, user: user, elements: child.categories };
         promises.push(function() {
           return authValidElements(opts).then(function(valids) {
             // Skip duplicates
@@ -714,7 +641,7 @@ MetadataInstanceModel.prototype.getMetadataForScope = function(id_scope, user, c
         curPromise =
           authValidElements({
             scope: id_scope,
-            user_id: user.id,
+            user: user,
             elements: entities
           })
           .then((valids)=>{
@@ -727,29 +654,29 @@ MetadataInstanceModel.prototype.getMetadataForScope = function(id_scope, user, c
         ;
 
         promises.push(curPromise);
-        
+
         for (let entity of category.entities) {
           let variables = entity.variables.map((v)=>v.id);
-          
+
           curPromise =
-            authValidElements({ 
-              scope: id_scope, 
-              user_id: user.id, 
-              elements: variables 
+            authValidElements({
+              scope: id_scope,
+              user: user,
+              elements: variables
             })
             .then(function(valids) {
               valids = new Set(valids);
-              
+
               entity.variables = entity.variables
                 .filter((ev)=>valids.has(ev.id))
               ;
             })
           ;
-          
+
           varproms.push(curPromise);
         }
       }
-      
+
       promises.push(Promise.all(varproms));
 
       return Promise
@@ -918,38 +845,38 @@ MetadataInstanceModel.prototype.getEntsForSearch = function(scope,entities, cb) 
 MetadataInstanceModel.prototype._getMetadataQueryForScope = function(for_superadmin) {
 
   var sql = `
-    SELECT DISTINCT 
-      c.category_name, 
-      c.id_category, 
-      c.nodata, 
-      c.config       AS category_config, 
-      ( CASE 
-          WHEN v.table_name IS NULL THEN e.table_name 
-          ELSE v.table_name 
-        END )        AS table_name, 
-      e.entity_name, 
-      e.mandatory    AS entity_mandatory, 
-      e.table_name   AS entity_table_name, 
-      e.editable     AS entity_editable, 
-      v.id_variable  AS id_variable, 
-      v.id_entity, 
-      v.var_name, 
-      v.var_units, 
-      v.var_thresholds, 
-      v.var_agg, 
-      v.var_reverse, 
-      v.mandatory    AS variable_mandatory, 
-      v.editable     AS variable_editable, 
-      v.entity_field AS column_name, 
-      v.config 
-    FROM   metadata.scopes s 
-    LEFT JOIN metadata.categories_scopes c 
-      ON c.id_scope = s.id_scope 
-    LEFT JOIN metadata.entities_scopes e 
-      ON e.id_category = c.id_category AND e.id_scope = s.id_scope  
-    LEFT JOIN metadata.variables_scopes v 
+    SELECT DISTINCT
+      c.category_name,
+      c.id_category,
+      c.nodata,
+      c.config       AS category_config,
+      ( CASE
+          WHEN v.table_name IS NULL THEN e.table_name
+          ELSE v.table_name
+        END )        AS table_name,
+      e.entity_name,
+      e.mandatory    AS entity_mandatory,
+      e.table_name   AS entity_table_name,
+      e.editable     AS entity_editable,
+      v.id_variable  AS id_variable,
+      v.id_entity,
+      v.var_name,
+      v.var_units,
+      v.var_thresholds,
+      v.var_agg,
+      v.var_reverse,
+      v.mandatory    AS variable_mandatory,
+      v.editable     AS variable_editable,
+      v.entity_field AS column_name,
+      v.config
+    FROM   metadata.scopes s
+    LEFT JOIN metadata.categories_scopes c
+      ON c.id_scope = s.id_scope
+    LEFT JOIN metadata.entities_scopes e
+      ON e.id_category = c.id_category AND e.id_scope = s.id_scope
+    LEFT JOIN metadata.variables_scopes v
       ON v.id_entity = e.id_entity AND v.id_scope = s.id_scope
-    WHERE s.id_scope=$1 
+    WHERE s.id_scope=$1
   `;
 
   if (!for_superadmin) {

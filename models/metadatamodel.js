@@ -1,20 +1,20 @@
 // Copyright 2017 Telefónica Digital España S.L.
-// 
+//
 // This file is part of UrboCore API.
-// 
+//
 // UrboCore API is free software: you can redistribute it and/or
 // modify it under the terms of the GNU Affero General Public License as
 // published by the Free Software Foundation, either version 3 of the
 // License, or (at your option) any later version.
-// 
+//
 // UrboCore API is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero
 // General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU Affero General Public License
 // along with UrboCore API. If not, see http://www.gnu.org/licenses/.
-// 
+//
 // For those usages not covered by this license please contact with
 // iot_support at tid dot es
 
@@ -40,10 +40,45 @@ MetadataModel.prototype.getCategoriesMetadata = function(cb) {
     if (err) return cb(err);
     return cb(null, d);
   });
-}
+};
 
 MetadataModel.prototype.getEntitiesMetadata = function(user_id, cb) {
-  var q = this._getMetadataQuery();
+  let q = `
+    SELECT
+      -- Category information
+      c.category_name,
+      c.id_category,
+      c.nodata,
+      c.config AS category_config,
+      -- Entity information
+      e.entity_name,
+      e.mandatory AS entity_mandatory,
+      e.table_name AS entity_table_name,
+      e.editable AS entity_editable,
+      -- Variable information
+      v.config,
+      v.id_variable AS id_variable,
+      v.id_entity,
+      v.type,
+      v.var_name,
+      v.var_units,
+      v.var_thresholds,
+      v.var_agg,
+      v.var_reverse,
+      v.mandatory AS variable_mandatory,
+      v.editable AS variable_editable,
+      v.entity_field AS column_name,
+      (CASE
+        WHEN v.table_name IS NULL THEN e.table_name
+        ELSE v.table_name
+      END) AS table_name
+    FROM metadata.categories c
+    INNER JOIN metadata.entities e
+      ON c.id_category = e.id_category
+    LEFT JOIN metadata.variables v
+      ON v.id_entity = e.id_entity
+  `;
+
   this.query(q,null,(function(err,d) {
     if (err) return cb(err);
     var dataset = this._dataset2metadata(d);
@@ -116,41 +151,6 @@ MetadataModel.prototype._dataset2metadata = function(d) {
 
   return dt;
 
-}
-
-
-MetadataModel.prototype._getMetadataQuery = function() {
-  // [{
-  // category_name: '<category_name>',
-  // id_category: '<id_category>',
-  // table: '<table_name>',
-  // entity_name: '<entity_name>',
-  // id_variable: '<id_variable>',
-  // id_entity: '<id_entity>',
-  // var_name: '<var_name>',
-  // var_units: '<var_units>',
-  // var_thresholds: [],
-  // var_agg: ["SUM","MAX","MIN","AVG"],
-  // var_reverse: true|false
-  // }]
-
-
-  // Old fashioned query
-  var mtdQry = [
-    'SELECT c.category_name, c.id_category, c.nodata, c.config AS category_config, ',
-    '(CASE WHEN v.table_name IS NULL THEN e.table_name ELSE v.table_name END) AS table_name, ',
-    'e.entity_name, e.mandatory as entity_mandatory, e.table_name AS entity_table_name, e.editable as entity_editable, v.config,',
-    'v.id_variable as id_variable, v.id_entity, v.type, v.var_name, v.var_units, ',
-    'v.var_thresholds, v.var_agg, v.var_reverse, v.mandatory as variable_mandatory, ',
-    'v.editable as variable_editable, v.entity_field as column_name',
-    'FROM metadata.variables v',
-    'INNER JOIN metadata.entities e on v.id_entity=e.id_entity',
-    'INNER JOIN metadata.categories c on e.id_category = c.id_category'
-  ];
-
-  // View??
-  // var mtdQry = 'SELECT * FROM metadata.full_metadata';
-  return mtdQry.join(' ');
 }
 
 /*
