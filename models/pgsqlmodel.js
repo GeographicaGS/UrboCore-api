@@ -125,7 +125,7 @@ PGSQLModel.prototype.pCachedQuery = function(sql, bindings) {
       if (rawData !== null) {
         log.debug('Retrieving data from cache');
         return JSON.parse(rawData, (key, value)=>{
-          if (value && value._t === 'date'){
+          if (value && value._t === 'date') {
             return new Date(value._);
           } else {
             return value;
@@ -141,7 +141,7 @@ PGSQLModel.prototype.pCachedQuery = function(sql, bindings) {
               .setAsync(
                 cacheKey,
                 JSON.stringify(data, (key, value)=>{
-                  if (key !== '_' && Date.parse(value)){
+                  if (key !== '_' && Date.parse(value)) {
                     return {
                       _t: 'date',
                       _: value
