@@ -239,11 +239,11 @@ function checkPublishedOrCheckToken(req, res, next) {
   }
 }
 
-function processNode(user_id,node,ops) {
+function processNode(user,node,ops) {
 
   for (var i in ops) {
     if (ops[i] === 'read' || ops[i] === 'write') {
-      if (node[ops[i] + '_users'].indexOf(user_id)===-1) {
+      if (!user.superadmin && node[ops[i] + '_users'].indexOf(user.id)===-1) {
         return false;
       }
     }
@@ -254,11 +254,11 @@ function processNode(user_id,node,ops) {
   return true;
 }
 
-function processNodes(user_id,ops,nodes) {
+function processNodes(user,ops,nodes) {
   var resp = [];
 
   for (var i in nodes) {
-    if (processNode(user_id,nodes[i],ops))
+    if (processNode(user,nodes[i],ops))
       resp.push(nodes[i]);
   }
   return resp;
@@ -338,7 +338,7 @@ function checkNodesFN(opts,cb) {
 
   if (typeof opts.nodes[0] === 'object') {
     // It's a list of objects
-    cb(null,processNodes(opts.user_id,opts.ops,opts.nodes));
+    cb(null,processNodes(opts.user,opts.ops,opts.nodes));
   }
   else {
     // It's a list of node ids. Let's recover it from DB.
@@ -346,7 +346,7 @@ function checkNodesFN(opts,cb) {
     m.getNodes(opts.nodes,function(err,nodes) {
       if (err)
         return cb(err);
-      var resp = processNodes(opts.user.id,opts.ops,nodes);
+      var resp = processNodes(opts.user,opts.ops,nodes);
       resp = resp.map(function(n) {
         return n.id;
       });
@@ -368,7 +368,7 @@ function checkNodesMiddleware(nodes,ops) {
 
     checkNodesFN({
       nodes: nodes,
-      user_id: res.user.id,
+      user: res.user,
       ops : ops
     },function(err,allow_nodes) {
 

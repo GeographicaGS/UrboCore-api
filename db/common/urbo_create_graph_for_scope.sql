@@ -54,11 +54,23 @@ CREATE OR REPLACE FUNCTION urbo_create_graph_for_scope(id_scope text, id_categor
     IF _r is NULL THEN
       _q := format('
         WITH insertion as (
-          INSERT INTO public.users_graph (name, parent, read_users, write_users)
-          VALUES (''%s'', %s, array[]::bigint[],array[]::bigint[]) RETURNING id
+          INSERT INTO public.users_graph (
+            name,
+            parent,
+            read_users,
+            write_users
+          )
+          VALUES (
+            ''%s'',
+            %s,
+            array[]::bigint[],
+            array[]::bigint[]
+          )
+          RETURNING id
         )
-        SELECT id FROM insertion',
-        id_scope, _rootid);
+        SELECT id FROM insertion
+      ', id_scope, _rootid);
+
       -- raise notice '%', _q;
       EXECUTE _q into _r;
       -- raise notice '%', _r;
@@ -68,8 +80,12 @@ CREATE OR REPLACE FUNCTION urbo_create_graph_for_scope(id_scope text, id_categor
 
     -- THEN INSERT category IF EXISTS
 
-    _q := format('SELECT id_category FROM metadata.categories_scopes
-      WHERE id_scope=''%s'' AND id_category=''%s''', id_scope, id_category);
+    _q := format('
+        SELECT id_category
+        FROM metadata.categories_scopes
+        WHERE id_scope=''%s'' AND id_category=''%s''
+    ', id_scope, id_category);
+
     -- RAISE NOTICE '%', _q;
     EXECUTE _q INTO _r;
     IF _r IS NULL THEN
@@ -78,11 +94,22 @@ CREATE OR REPLACE FUNCTION urbo_create_graph_for_scope(id_scope text, id_categor
 
     _q := format('
       WITH insertion as (
-        INSERT INTO public.users_graph (name, parent, read_users, write_users)
-        VALUES (''%s'', %s, array[]::bigint[],array[]::bigint[]) RETURNING id
+        INSERT INTO
+          public.users_graph (
+            name,
+            parent,
+            read_users,
+            write_users
+          )
+        VALUES (
+          ''%s'',
+          %s,
+          array[]::bigint[],
+          array[]::bigint[]
+        ) RETURNING id
       )
-      SELECT id FROM insertion',
-      id_category, _scopeid);
+      SELECT id FROM insertion
+    ', id_category, _scopeid);
     EXECUTE _q INTO _r;
 
     _categoryid := _r.id;
