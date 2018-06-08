@@ -286,6 +286,10 @@ DevicesModel.prototype.getDeviceLastData = function(scope,deventity,devname,user
             cb(err);
           }
 
+          if (data.rows.length === 0) {
+            return cb(utils.error('Resource not found',404));
+          }
+
           var obj = data.rows[0];
           var lData = [];
           var var_fields = _.values(obj.var_values);
