@@ -26,8 +26,6 @@ var log = utils.log();
 var config = require('../config.js');
 var cache = require('../cache.js');
 var crypto = require('crypto');
-var json_date_parser = require('json-date-parser');
-var _ = require('underscore');
 
 var pool = new pg.Pool(Object.assign({max:10},config.getData().pgsql));
 
