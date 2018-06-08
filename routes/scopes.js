@@ -54,7 +54,7 @@ router.get('/', function(req, res, next) {
       }
     });
   } else {
-    model.getScopeList(res.user.id, multi, function(err, scopeList) {
+    model.getScopeList(res.user, multi, function(err, scopeList) {
       if (err) {
         log.error('Devices map: Error when selecting data');
         next(err);

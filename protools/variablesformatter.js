@@ -52,7 +52,7 @@ VariablesFormatter.prototype.timeSerie = function(promisesResult) {
   var timeColumnIndex = 0;
   var auxTime = new Date('3999-31-12T23:59:59Z');
   for (var i = 0; i < columns.length; i++) {
-    var auxTime2 = promisesResult[i].rows[0].start;
+    var auxTime2 = promisesResult[i].rows[0] && promisesResult[i].rows[0].start;
     if (auxTime2 < auxTime) {
       timeColumnIndex = i;
       auxTime = auxTime2;
