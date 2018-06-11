@@ -26,6 +26,8 @@ var log = utils.log();
 var config = require('../config.js');
 var cache = require('../cache.js');
 var crypto = require('crypto');
+var RecursiveIterator = require('recursive-iterator');
+var _ = require('underscore');
 
 var pool = new pg.Pool(Object.assign({max:10},config.getData().pgsql));
 
@@ -134,23 +136,43 @@ PGSQLModel.prototype.pCachedQuery = function(sql, bindings) {
       }
       else {
         log.debug('Retrieving data from database and storing it in cache');
+
         return this
           .promise_query(sql, bindings)
           .then((data)=>{
+
+            // In order to correctly retrieve Date objects when de-serializing
+            // as Date objects, we have to walk recursively through all tree
+            // nodes and prepare for Date objects a structure including the
+            // type...
+            let toPersistData = {};
+
+            for (let {node, path} of new RecursiveIterator(data, 1, true)) {
+
+              if (path[path.length - 1].startsWith('_') || node === undefined || _.isFunction(node)) {
+                continue;
+              }
+
+              if (node instanceof Date) {
+                node =  {
+                  _t: 'date',
+                  _: node
+                };
+              }
+
+              let parentElem = toPersistData;
+              for (let attrName of path.slice(0,path.length - 1)) {
+                parentElem = parentElem[attrName];
+              }
+
+              parentElem[path[path.length - 1]] = _.clone(node);
+            }
+
+            // ... then we can persist
             return cache
               .setAsync(
                 cacheKey,
-                JSON.stringify(data, (key, value)=>{
-                  if (key !== '_' && Date.parse(value)) {
-                    return {
-                      _t: 'date',
-                      _: value
-                    };
-                  } else {
-                    return value;
-                  }
-
-                }),
+                JSON.stringify(toPersistData),
                 'PX',
                 cache.keyTTL * 60 * 1000
               )
