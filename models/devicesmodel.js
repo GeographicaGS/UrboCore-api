@@ -390,7 +390,7 @@ DevicesModel.prototype.getDevicesRawData = function(opts, cb) {
         `${filter} id_entity='${opts.id_device}' AND "TimeInstant" >=`,
         `'${opts.start}'::timestamp AND "TimeInstant"`,
         `< '${opts.finish}'::timestamp`,
-        'ORDER by "TimeInstant"'
+        'ORDER by "TimeInstant" DESC'
       ];
 
       promises.push(this.cachedQuery(sql.join(' ')));
