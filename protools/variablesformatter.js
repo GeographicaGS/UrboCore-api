@@ -74,10 +74,11 @@ VariablesFormatter.prototype.timeSerie = function(promisesResult) {
 
       var value;
       var times;
-      if (promisesResult[j].rows[i].start.toString() !== time.toString()) {
+      if (!promisesResult[j].rows.length) {
+        value = null;
+      } else if (promisesResult[j].rows[i].start.toString() !== time.toString()) {
         promisesResult[j].rows.splice(i, 0, null);
         value = null;
-
       } else {
         value = promisesResult[j].rows[i][columns[j]];
         times = promisesResult[j].rows[i].times;
