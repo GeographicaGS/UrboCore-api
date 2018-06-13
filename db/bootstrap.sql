@@ -23,6 +23,10 @@
 * Script to load all PL/PgSQL functions
 */
 
+-- Metadata schema creation
+
+\ir common/urbo_metadata.sql
+
 -- Entities functions
 \ir common/urbo_entities.sql
 
