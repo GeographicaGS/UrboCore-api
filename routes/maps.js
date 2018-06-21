@@ -27,6 +27,7 @@ const utils = require('../utils.js');
 const log = utils.log();
 const responseValidator = utils.responseValidator;
 const timesValidator = utils.timesValidator;
+const geomValidator = utils.geomValidator;
 
 let router = express.Router();
 
@@ -69,11 +70,12 @@ let entityResponse = function(req, res, next) {
 
 router.get('/:entity', entityValidator, entityResponse);
 
-router.post('/:entity/now', entityValidator, filtersValidator,
+router.post('/:entity/now', entityValidator, filtersValidator, geomValidator,
   responseValidator, function(req, res, next) {
     req.opts = {
       filters: req.body.filters || {'condition': {}},
-      bbox: req.body.filters ? req.body.filters.bbox : undefined
+      bbox: req.body.filters ? req.body.filters.bbox : undefined,
+      the_geom: req.body.filters ? req.body.filters.the_geom : undefined
     };
 
     return next();

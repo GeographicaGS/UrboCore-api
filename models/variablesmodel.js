@@ -951,7 +951,7 @@ VariablesModel.prototype.rankingNow = function(opts) {
 
     .then(function(data) {
       var qb = new QueryBuilder(opts);
-      var filter = `${qb.bbox()} ${qb.filter()}`;
+      var filter = `${qb.bbox()} ${qb.the_geom()} ${qb.filter()}`;
 
       var varIds = data.vars_ids;
       var varNames = data.vars;
