@@ -242,7 +242,7 @@ QueryBuilder.prototype.the_geom = function(srid=4326) {
         if (typeof(tgeom.ST_Intersects) === 'string') {
           geom = util.format('%s::geometry', tgeom.ST_Intersects);
         } else {
-          geom = util.format('ST_GeomFromGeoJSON(%s)', tgeom.ST_Intersects);
+          geom = util.format('ST_GeomFromGeoJSON(\'%s\')', JSON.stringify(tgeom.ST_Intersects));
         }
         geom_filter = util.format('ST_SetSRID(%s,4326)', geom);
         if (srid !== 4326) {
