@@ -489,7 +489,8 @@ It returns the current values of the requested variables ranked by a variable.
 - var_order (mandatory): variable id for ordering.
 - order (optional): 'asc' or 'desc', default 'desc'.
 - limit (optional): an intenger for limiting the query result, default without limit.
-- bbox (optional): [lx,ly,ux,uy]
+- filters.bbox (optional, **DEPRECATED, use the_geom filter instead**): [lx,ly,ux,uy]
+- filters.the_geom (optional): Geometry filter. Find more information on how to use this filter [here](../geom_filter.md).
 
 Payload:
 ```json
@@ -503,7 +504,9 @@ Payload:
   "order": "desc",
   "limit": 5,
   "filters": {
-    "bbox": [lx, ly, ux, uy]
+    "the_geom": {
+      "&&": [lx, ly, ux, uy]
+    }
   }
 }
 ```
