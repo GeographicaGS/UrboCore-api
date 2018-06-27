@@ -51,7 +51,8 @@ Path's params:
 
 Body's params:
   - filters.condition (mandatory, can be empty): Urbo's filter conditions
-  - filters.bbox (optional)
+  - filters.the_geom (optional): Geometry filter. Find more information on how to use this filter [here](../geom_filter.md).
+  - filters.bbox (optional, **DEPRECATED, use the_geom filter instead**)
 
 Example request URL:
 ```text
@@ -61,8 +62,10 @@ Example request URL:
 Example body:
 ```json
 {
-  "filters":
-    "bbox": [321.328125, 81.0932138526084, -284.765625000000069, -54.1624339680678],
+  "filters": {
+    "the_geom": {
+      "&&": [321.328125, 81.0932138526084, -284.765625000000069, -54.1624339680678]
+    },
     "condition": {
       "AND": {
         "property_0__in": ["value_a"],

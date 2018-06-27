@@ -76,4 +76,11 @@ module.exports.responseValidator = function(req, res, next){
 
     });
   }
-}
+};
+
+module.exports.geomValidator = function(req, res, next) {
+  req.checkBody('filters.the_geom["&&"]', 'Must be an array with 4 values').optional().isArray();
+  req.checkBody('filters.the_geom.ST_Intersects', 'Must be a string or GeoJSON').optional().notEmpty();
+  req.checkBody('filters.the_geom.id', 'Must be a valid id').optional().notEmpty();
+  return next();
+};

@@ -208,13 +208,53 @@ QueryBuilder.prototype.bbox = function() {
   return ret;
 }
 
-
 QueryBuilder.prototype.CARTObbox = function() {
   var ret = '';
   if ('filters' in this.opts && this.opts.filters!=null) {
     if ('bbox' in this.opts.filters && this.opts.filters.bbox!=null) {
       ret += ' AND the_geom && ' + util.format('ST_MakeEnvelope(%s,4326)', this.opts.filters.bbox);
     }
+  }
+  return ret;
+}
+
+QueryBuilder.prototype.the_geom = function(srid=4326) {
+  var ret = '';
+  var geom_filter = '';
+  var sql = [];
+  if ('filters' in this.opts && this.opts.filters!=null) {
+    if ('the_geom' in this.opts.filters && this.opts.filters.the_geom!=null) {
+      var tgeom = this.opts.filters.the_geom
+      if ('&&' in tgeom && tgeom['&&'] != null && Array.isArray(tgeom['&&']) && tgeom['&&'].length === 4) {
+        geom_filter = util.format('ST_MakeEnvelope(%s,4326)', tgeom['&&']);
+        if (srid !== 4326) {
+          geom_filter = util.format('ST_Transform(%s, %s)', geom_filter, srid);
+        }
+        sql.push(util.format('position && %s', geom_filter));
+      }
+
+      if ('id' in tgeom && tgeom.id != null) {
+        sql.push(util.format('id IN (%s)', tgeom.id));
+      }
+
+      if ('ST_Intersects' in tgeom && tgeom.ST_Intersects != null) {
+        var geom = '';
+        if (typeof(tgeom.ST_Intersects) === 'string') {
+          geom = util.format('%s::geometry', tgeom.ST_Intersects);
+        } else {
+          geom = util.format('ST_GeomFromGeoJSON(\'%s\')', JSON.stringify(tgeom.ST_Intersects));
+        }
+        geom_filter = util.format('ST_SetSRID(%s,4326)', geom);
+        if (srid !== 4326) {
+          geom_filter = util.format('ST_Transform(%s, %s)', geom_filter, srid);
+        }
+        sql.push(util.format('ST_Intersects(position,%s)', geom_filter));
+      }
+    }
+  }
+
+  if (sql.length !== 0) {
+    ret = util.format(' AND ((%s))', sql.join(') AND ('));
   }
   return ret;
 }
@@ -234,6 +274,7 @@ QueryBuilder.prototype.filter = function() {
 QueryBuilder.prototype.condition = function() {
     // Only ONE root element allowed
   this.plainSQL += this.bbox();
+  this.plainSQL += this.the_geom();
   this.plainSQL += this.filter();
   return Promise.resolve(this);
 }

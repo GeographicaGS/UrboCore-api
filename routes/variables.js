@@ -28,6 +28,7 @@ var log = utils.log();
 var VariablesModel = require('../models/variablesmodel');
 var auth = require('../auth.js');
 var responseValidator = utils.responseValidator;
+const geomValidator = utils.geomValidator;
 var CSVFormatter = require('../protools/csvformatter');
 var timesValidator = utils.timesValidator;
 
@@ -45,7 +46,7 @@ var rankingValidator = function(req, res, next) {
 /*
  * It returns the current values of the requested variables ranked by a variable.
  */
-router.post('/ranking/now', rankingValidator, responseValidator, auth.validateVariables('vars'), function(req, res, next) {
+router.post('/ranking/now', rankingValidator, geomValidator, responseValidator, auth.validateVariables('vars'), function(req, res, next) {
   var opts = {
     scope: req.scope,
     filters: req.body.filters || {},
@@ -346,6 +347,7 @@ var histogramDiscreteNowValidator = function(req, res, next) {
 // HISTOGRAMS
 router.post('/:id/histogram/discrete/now',
   histogramDiscreteNowValidator,
+  geomValidator,
   responseValidator,
   auth.validateVariables('id'),
   function(req, res, next) {
