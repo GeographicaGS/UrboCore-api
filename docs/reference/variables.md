@@ -831,10 +831,10 @@ Response (when there is no data for calculating the bounding box):
 
 It returns a comparison between the variable's aggregated values (SUM) in two periods with the same duration.
 
-- timestamp (mandatory): The moment from which to compare backwards (format YYYY-MM-DDTHH:MM:SS)
-- interval (mandatory): A valid [Postgres interval type string](https://www.postgresql.org/docs/current/static/datatype-datetime.html#DATATYPE-INTERVAL-INPUT). It is used to define the periods duration.
-- filters.the_geom (optional): Geometry filter, bbox filter is DEPRECATED and this must be used instead. Find more information on how to use this filter [here](../geom_filter.md).
-- filters.condition (optional): Conditions filter, allows filtering given a set of conditions.
+- `timestamp` (mandatory): The moment from which to compare backwards (format YYYY-MM-DDTHH:MM:SS)
+- `interval` (mandatory): A valid [Postgres interval type string](https://www.postgresql.org/docs/current/static/datatype-datetime.html#DATATYPE-INTERVAL-INPUT). It is used to define the periods duration.
+- `filters.the_geom` (optional): Geometry filter, bbox filter is DEPRECATED and this must be used instead. Find more information on how to use this filter [here](../geom_filter.md).
+- `filters.condition` (optional): Conditions filter, allows filtering given a set of conditions.
 
 In the following example the periods compared are 2018-07-18(03:00 - 03:59) to (04:00-04:59).
 Keep in mind that the compared periods are always next to each other.
