@@ -1238,4 +1238,48 @@ VariablesModel.prototype.boundingBox = function(opts) {
   });
 };
 
+VariablesModel.prototype.comparison = function(opts) {
+  return new MetadataInstanceModel().getVarQuery(opts.scope, opts.idVar)
+
+  .then(data => {
+    if (!data.rows.length) {
+      var err = new Error(`Variable '${opts.idVar}' not found in the '${opts.scope}' scope`);
+      return Promise.reject(err);
+    }
+
+    var table = data.rows[0].table_name;
+    var field = data.rows[0].entity_field;
+
+    var qb = new QueryBuilder(opts);
+    // Keep in mind that bbox filter is deprecated as of Jun 2018
+    var qry_filter = `${qb.the_geom()} ${qb.filter()}`;
+
+
+    var sql = `SELECT   (array_agg(SUM))[1] value_then,
+                        (array_agg(SUM))[2] value_now,
+                        (((array_agg(SUM))[2] - (array_agg(SUM))[1])/(array_agg(SUM))[1]) * 100 percentage
+               FROM
+               (
+                  SELECT  SUM(${field}),
+                          position
+                  FROM    ${opts.scope}.${table}
+                  JOIN    generate_series('${opts.date}'::timestamp - '${opts.interval}'::interval - '${opts.interval}'::interval,
+                                          '${opts.date}'::timestamp - '${opts.interval}'::interval,
+                                          '${opts.interval}'::interval) x
+                  ON "TimeInstant" >= x AND "TimeInstant" < x + '${opts.interval}'::interval
+                  WHERE TRUE ${qry_filter}
+                  GROUP BY x, position
+                  ORDER BY x ASC
+               ) ts;`;
+
+    return this.cachedQuery(sql);
+  })
+
+  .then(data => {
+    var formatted = null;
+    formatted = new DummyFormatter().pipe(data.rows);
+    return Promise.resolve(formatted);
+  });
+};
+
 module.exports = VariablesModel;
