@@ -1260,15 +1260,14 @@ VariablesModel.prototype.comparison = function(opts) {
                         (((array_agg(SUM))[2] - (array_agg(SUM))[1])/(array_agg(SUM))[1]) * 100 percentage
                FROM
                (
-                  SELECT  SUM(${field}),
-                          position
+                  SELECT  SUM(${field})
                   FROM    ${opts.scope}.${table}
                   JOIN    generate_series('${opts.date}'::timestamp - '${opts.interval}'::interval - '${opts.interval}'::interval,
                                           '${opts.date}'::timestamp - '${opts.interval}'::interval,
                                           '${opts.interval}'::interval) x
                   ON "TimeInstant" >= x AND "TimeInstant" < x + '${opts.interval}'::interval
                   WHERE TRUE ${qry_filter}
-                  GROUP BY x, position
+                  GROUP BY x
                   ORDER BY x ASC
                ) ts;`;
 
