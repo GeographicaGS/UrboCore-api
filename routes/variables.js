@@ -330,17 +330,23 @@ router.get('/:id/devices_group_timeserie',
 
 
 var histogramDiscreteNowValidator = function(req, res, next) {
+  var subVariable = req.body.subVariable;
 
   // Sync validators
   req.checkBody('filters', 'required').optional().notEmpty();
   req.checkBody('ranges', 'required').notEmpty();
   req.checkBody('totals', 'boolean required').optional().isBoolean();
   req.checkBody('filters.bbox', 'array required').optional().isArray();
+  req.checkBody('subRanges', 'Array required if field defined').optional().notEmpty();
+  req.checkBody('subVariable', 'Subrange variable required if field defined').optional().notEmpty();
 
   // Master async validator for filters
   req.checkBody('ranges', 'invalid ranges').validRanges(req.params.scope,req.params.id);
 
-  return next();
+  if (subVariable)
+    auth.validateVariables('subVariable')(req, res, next);
+  else
+    return next();
 }
 
 
@@ -358,8 +364,10 @@ router.post('/:id/histogram/discrete/now',
       scope: req.scope,
       ranges: req.body.ranges,
       filters: req.body.filters || {},
-      totals: req.body.totals || false
-    }
+      totals: req.body.totals || false,
+      subRanges: req.body.subRanges,
+      subVariable: req.body.subVariable
+    };
 
     var model = new VariablesModel();
     model.getVariablesDiscreteHistogramNow(opts)
