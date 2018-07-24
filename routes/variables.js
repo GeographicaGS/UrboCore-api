@@ -742,4 +742,38 @@ router.post('/:id/bounding_box', auth.validateVariables('id'), function(req, res
   });
 });
 
+var comparisonValidator = function(req, res, next) {
+  var start = req.body.timestamp;
+  req.checkBody('timestamp', 'A valid timestamp following format YYYY-MM-DDTHH:MM:SSZ').notEmpty();
+  req.checkBody('interval', 'A valid PostgreSQL interval').notEmpty();
+  req.checkBody('filters', 'Optional, desired filtering information').optional().notEmpty();
+
+  if (start && new Date(start) === 'Invalid Date')
+    return next(utils.error('Wrong time parameter [timestamp] (mandatory). Format: YYYY-MM-DDT00:00:00',400));
+  return next();
+};
+
+router.post('/:id/comparison',
+  auth.validateVariables('id'),
+  comparisonValidator,
+  utils.geomValidator,
+  responseValidator,
+  function(req, res, next) {
+    var opts = {
+      scope: req.scope,
+      idVar: req.params.id,
+      date: req.body.timestamp,
+      interval: req.body.interval,
+      filters: req.body.filters || {'condition': {}}
+    };
+    new VariablesModel().comparison(opts)
+    .then(data => {
+      res.json(data);
+    })
+    .catch(err => {
+      next(utils.error(err, 400))
+    });
+  }
+);
+
 module.exports = router;
