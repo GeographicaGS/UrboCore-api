@@ -327,7 +327,14 @@ Response (totals: false):
  }]
 ```
 ### POST /:scope/variables/:id/histogram/discrete/now
-@TODO
+Returns the number of elements existing in each desired category.
+
+- `ranges` (mandatory): Can be "all" or an array of strings with the categories values.
+- `totals` (optional, true or false): Calculate the total number of existing elements, without any filtering by category.
+- `subVariable` (optional): Another variable id if we desire to add a new subcategory.
+- `subRanges` (mandatory if subVariable is specified): An array of strings with the subcateogries values.
+
+If "all" is specified in `ranges` sub-filtering won't be applied. `subRanges` does not admit the "all" shortcut.
 
 Payload: Auto-guessing categories
 ```
@@ -362,6 +369,45 @@ Response:
     value: 30,
     total: 35
 }]
+```
+
+Payload: Fixed categories and subcategories
+```json
+{
+	"ranges": ["ok","offline"],
+	"subVariable": "lighting.streetlight.powerstate",
+	"subRanges": ["On", "Off"]
+}
+```
+
+Response:
+```json
+[
+    {
+        "category": "ok",
+        "subCategory": "On",
+        "value": "1",
+        "total": 0
+    },
+    {
+        "category": "ok",
+        "subCategory": "Off",
+        "value": "1",
+        "total": 0
+    },
+    {
+        "category": "offline",
+        "subCategory": "On",
+        "value": "2",
+        "total": 0
+    },
+    {
+        "category": "offline",
+        "subCategory": "Off",
+        "value": "1",
+        "total": 0
+    }
+]
 ```
 
 ### POST /:scope/variables/:id/histogram/timeserie/continuous
@@ -607,7 +653,7 @@ Example payload:
 {
   "agg": ["sum", "avg"],
   "vars": [
-    
+
     "indoor_air.quality.tvoc",
     "indoor_air.quality.co2"
   ],
@@ -825,4 +871,45 @@ Response (when there is no data for calculating the bounding box):
 {
   "value": null
 }
+```
+
+### POST /:scope/variables/:id/comparison
+
+It returns a comparison between the variable's aggregated values (SUM) in two periods with the same duration.
+
+- `timestamp` (mandatory): The moment from which to compare backwards (format YYYY-MM-DDTHH:MM:SS)
+- `interval` (mandatory): A valid [Postgres interval type string](https://www.postgresql.org/docs/current/static/datatype-datetime.html#DATATYPE-INTERVAL-INPUT). It is used to define the periods duration.
+- `filters.the_geom` (optional): Geometry filter, bbox filter is DEPRECATED and this must be used instead. Find more information on how to use this filter [here](../geom_filter.md).
+- `filters.condition` (optional): Conditions filter, allows filtering given a set of conditions.
+
+In the following example the periods compared are 2018-07-18(03:00 - 03:59) to (04:00-04:59).
+Keep in mind that the compared periods are always next to each other.
+
+Payload:
+```json
+{
+	"timestamp": "2018-07-18T05:00:00",
+	"interval": "1 hour",
+	"filters": {
+		"the_geom": {
+			"&&": [-6.5173, 42.5355, -6.5237, 42.5399]
+		},
+		"condition": {
+			"AND": {
+				"id_entity__in": ["streetlightcontrolcabinet:Leon:Molinaseca:3107"]
+			}
+		}
+	}
+}
+```
+
+Response:
+```json
+[
+    {
+        "value_then": 83210.33,
+        "value_now": 39377.05,
+        "percentage": -52.6776903781057
+    }
+]
 ```
