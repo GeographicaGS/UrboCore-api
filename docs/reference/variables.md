@@ -327,7 +327,14 @@ Response (totals: false):
  }]
 ```
 ### POST /:scope/variables/:id/histogram/discrete/now
-@TODO
+Returns the number of elements existing in each desired category.
+
+- `ranges` (mandatory): Can be "all" or an array of strings with the categories values.
+- `totals` (optional, true or false): Calculate the total number of existing elements, without any filtering by category.
+- `subVariable` (optional): Another variable id if we desire to add a new subcategory.
+- `subRanges` (mandatory if subVariable is specified): An array of strings with the subcateogries values.
+
+If "all" is specified in `ranges` sub-filtering won't be applied. `subRanges` does not admit the "all" shortcut.
 
 Payload: Auto-guessing categories
 ```
@@ -362,6 +369,45 @@ Response:
     value: 30,
     total: 35
 }]
+```
+
+Payload: Fixed categories and subcategories
+```json
+{
+	"ranges": ["ok","offline"],
+	"subVariable": "lighting.streetlight.powerstate",
+	"subRanges": ["On", "Off"]
+}
+```
+
+Response:
+```json
+[
+    {
+        "category": "ok",
+        "subCategory": "On",
+        "value": "1",
+        "total": 0
+    },
+    {
+        "category": "ok",
+        "subCategory": "Off",
+        "value": "1",
+        "total": 0
+    },
+    {
+        "category": "offline",
+        "subCategory": "On",
+        "value": "2",
+        "total": 0
+    },
+    {
+        "category": "offline",
+        "subCategory": "Off",
+        "value": "1",
+        "total": 0
+    }
+]
 ```
 
 ### POST /:scope/variables/:id/histogram/timeserie/continuous
