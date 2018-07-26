@@ -1296,22 +1296,31 @@ VariablesModel.prototype.comparison = function(opts) {
     // Keep in mind that bbox filter is deprecated as of Jun 2018
     var qry_filter = `${qb.the_geom()} ${qb.filter()}`;
 
-
-    var sql = `SELECT   (array_agg(SUM))[1] value_then,
-                        (array_agg(SUM))[2] value_now,
-                        (((array_agg(SUM))[2] - (array_agg(SUM))[1])/(array_agg(SUM))[1]) * 100 percentage
-               FROM
-               (
-                  SELECT  SUM(${field})
-                  FROM    ${opts.scope}.${table}
-                  JOIN    generate_series('${opts.date}'::timestamp - '${opts.interval}'::interval - '${opts.interval}'::interval,
-                                          '${opts.date}'::timestamp - '${opts.interval}'::interval,
-                                          '${opts.interval}'::interval) x
-                  ON "TimeInstant" >= x AND "TimeInstant" < x + '${opts.interval}'::interval
-                  WHERE TRUE ${qry_filter}
-                  GROUP BY x
-                  ORDER BY x ASC
-               ) ts;`;
+    var sql = `
+      WITH t_then AS (
+          SELECT  SUM(${field}) val,
+                  id_entity
+          FROM    ${opts.scope}.${table}
+          WHERE   "TimeInstant" >= '${opts.date}'::timestamp - '${opts.interval}'::interval - '${opts.interval}'::interval
+                  AND "TimeInstant" < '${opts.date}'::timestamp - '${opts.interval}'::interval
+                  ${qry_filter}
+          GROUP BY id_entity
+      ),   t_now  AS (
+          SELECT  SUM(${field}) val,
+                  id_entity
+          FROM    ${opts.scope}.${table}
+          WHERE   "TimeInstant" >= '${opts.date}'::timestamp - '${opts.interval}'::interval
+                  AND "TimeInstant" < '${opts.date}'::timestamp
+                  ${qry_filter}
+          GROUP BY id_entity
+      )
+      SELECT  COALESCE("then".val, 0) value_then,
+              COALESCE(now.val, 0) value_now,
+              COALESCE((now.val - "then".val) / "then".val, 1) * 100 percentage
+      FROM    t_then "then"
+      FULL JOIN t_now now
+      ON "then".id_entity = now.id_entity;
+    `
 
     return this.cachedQuery(sql);
   })
