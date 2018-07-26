@@ -1316,7 +1316,9 @@ VariablesModel.prototype.comparison = function(opts) {
       )
       SELECT  COALESCE("then".val, 0) value_then,
               COALESCE(now.val, 0) value_now,
-              COALESCE((now.val - "then".val) / "then".val, 1) * 100 percentage
+              CASE WHEN "then".val=0 THEN 0
+                   ELSE COALESCE((now.val - "then".val) / "then".val, 1) * 100
+              END percentage
       FROM    t_then "then"
       FULL JOIN t_now now
       ON "then".id_entity = now.id_entity;
