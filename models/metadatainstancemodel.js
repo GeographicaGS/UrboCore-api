@@ -724,8 +724,8 @@ MetadataInstanceModel.prototype.getVarQueryArray = function(scope, variables, cb
     'v.entity_field,v.id_variable',
     'FROM metadata.scopes s',
     'INNER JOIN metadata.categories_scopes c on c.id_scope = s.id_scope',
-    'INNER JOIN metadata.entities_scopes e on c.id_category=e.id_category',
-    'INNER JOIN metadata.variables_scopes v on v.id_entity=e.id_entity',
+    'INNER JOIN metadata.entities_scopes e on c.id_category=e.id_category AND c.id_scope = e.id_scope',
+    'INNER JOIN metadata.variables_scopes v on v.id_entity=e.id_entity AND c.id_scope = v.id_scope',
     util.format('WHERE s.status = 1 AND s.id_scope=\'%s\' AND v.id_variable IN (%s))', scope, vars),
     'SELECT id_entity,dbschema, table_name, entity_table_name, array_agg(entity_field) AS vars,array_agg(id_variable) AS vars_ids',
     'FROM q GROUP BY table_name, entity_table_name, dbschema, id_entity'];
