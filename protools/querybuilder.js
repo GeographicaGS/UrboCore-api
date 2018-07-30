@@ -1,20 +1,20 @@
 // Copyright 2017 Telefónica Digital España S.L.
-// 
+//
 // This file is part of UrboCore API.
-// 
+//
 // UrboCore API is free software: you can redistribute it and/or
 // modify it under the terms of the GNU Affero General Public License as
 // published by the Free Software Foundation, either version 3 of the
 // License, or (at your option) any later version.
-// 
+//
 // UrboCore API is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero
 // General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU Affero General Public License
 // along with UrboCore API. If not, see http://www.gnu.org/licenses/.
-// 
+//
 // For those usages not covered by this license please contact with
 // iot_support at tid dot es
 
@@ -114,17 +114,29 @@ QueryBuilder.prototype.group = function(that) {
 
   if (Array.isArray(that.opts.ranges)) {
     if (typeof that.opts.ranges[0] === 'string') {
-      that.plainSQL += ' AND ' + that.opts.raw.entity_field + ' IN (\'' + that.opts.ranges.join('\', \'') + '\')';
-    }
+      that.plainSQL += ' AND ' + that.opts.raw.vars[0] + ' IN (\'' + that.opts.ranges.join('\', \'') + '\')';
+
+      if (that.opts.subRanges) {
+        if (Array.isArray(that.opts.subRanges)) {
+          if (typeof that.opts.subRanges[0] === 'string') {
+            let subVar = that.opts.raw.vars[1];
+            that.plainSQL += ' AND ' + subVar + ' IN (\'' + that.opts.subRanges.join('\', \'') + '\')';
+            var groupBySub = ', ' + subVar + ')';
+          }
+        } else {
+          return Promise.reject('Invalid subRange: ' + that.opts.subRanges);
+        }
+      }
+
         // Complex filter to group continues ranges
-    else if (typeof that.opts.ranges[0] === 'object') {
+    } else if (typeof that.opts.ranges[0] === 'object') {
       var fullCases = [];
       var rangeCounter = 1;
       for (var range of that.opts.ranges) {
         var cases = [];
         var stringCase = 'count(CASE WHEN ';
         for (var k in range) {
-          cases.push(that.opts.raw.entity_field + k + range[k]);
+          cases.push(that.opts.raw.vars[0] + k + range[k]);
         }
         stringCase += cases.join(' AND ');
         stringCase += ' THEN ' + rangeCounter;
@@ -142,7 +154,15 @@ QueryBuilder.prototype.group = function(that) {
       return Promise.reject('Invalid range: ' + that.opts.ranges);
     }
   }
-  that.plainSQL += ' GROUP BY (' + that.opts.raw.entity_field + ')';
+
+  that.plainSQL += ' GROUP BY (' + that.opts.raw.vars[0];
+
+  if (groupBySub) {
+    that.plainSQL += groupBySub;
+  } else {
+    that.plainSQL += ')';
+  }
+
   return Promise.resolve(that.plainSQL);
 }
 
