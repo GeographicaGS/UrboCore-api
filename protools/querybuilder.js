@@ -132,11 +132,17 @@ QueryBuilder.prototype.group = function(that) {
     } else if (typeof that.opts.ranges[0] === 'object') {
       var fullCases = [];
       var rangeCounter = 1;
+      var field;
+      if (that.opts.raw.vars)
+        field = that.opts.raw.vars[0];
+      else
+        field = that.opts.raw.entity_field;
+
       for (var range of that.opts.ranges) {
         var cases = [];
         var stringCase = 'count(CASE WHEN ';
         for (var k in range) {
-          cases.push(that.opts.raw.vars[0] + k + range[k]);
+          cases.push(field + k + range[k]);
         }
         stringCase += cases.join(' AND ');
         stringCase += ' THEN ' + rangeCounter;
