@@ -57,14 +57,14 @@ class OrionDeMA extends OrionBaseV2 {
     super(subs);
   }
 
-  updateScopeStatus(scope, action) {
+  updateScopeStatus(scope, action, user) {
 
     if (action !== 'created' && action !== 'updated' && action !== 'deleted') return Promise.resolve();
 
     return new Promise((resolve, reject) => {
 
       let model = new MD();
-      model.getScopesWithMetadata(scope, null, (error, data) => {
+      model.getScopesWithMetadata(scope, user, (error, data) => {
         data = data[0];
         if (error) return reject(error);
 
