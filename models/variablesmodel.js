@@ -1070,7 +1070,7 @@ VariablesModel.prototype.rankingHistoric = function (opts) {
     var sql = `
       SELECT row_to_json(row) as device FROM (
         SELECT ${select}
-        FROM ${data.dbschema}.${data.entitytables[0]}
+        FROM ${data.dbschema}.${data.tablenames[0]}
         WHERE TRUE
         ${filter}
         ${dates}
