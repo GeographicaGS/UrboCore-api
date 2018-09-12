@@ -161,7 +161,10 @@ QueryBuilder.prototype.group = function(that) {
     }
   }
 
-  that.plainSQL += ' GROUP BY (' + that.opts.raw.vars[0];
+  if (that.opts.raw.vars)
+    that.plainSQL += ' GROUP BY (' + that.opts.raw.vars[0];
+  else
+    that.plainSQL += ' GROUP BY (' + that.opts.raw.entity_field;
 
   if (groupBySub) {
     that.plainSQL += groupBySub;
