@@ -1002,7 +1002,7 @@ VariablesModel.prototype.rankingNow = function(opts) {
       var order = opts.order || 'DESC';
       var limit = opts.limit ? `LIMIT ${opts.limit}` : '';
 
-      var sql = `SELECT "${varNames.join('", "')}"
+      var sql = `SELECT id_entity,"${varNames.join('", "')}"
           FROM ${data.dbschema}.${data.entitytables[0]}_lastdata
           WHERE true
           ${filter}
