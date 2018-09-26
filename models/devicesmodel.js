@@ -380,20 +380,48 @@ DevicesModel.prototype.getDevicesRawData = function(opts, cb) {
 
     data.rows.forEach((function(dt) {
       table = `${dt.dbschema}.${dt.table_name}`;
-      fieldsql = dt.varfields.map(function(v) {
-        return `'${v.id_var}',"${v.field}"`;
-      }).join(',');
 
-      sql = [
-        'SELECT "TimeInstant" as time,json_build_object(',
-        `${fieldsql}) as data FROM ${table}`,
-        `${filter} id_entity='${opts.id_device}' AND "TimeInstant" >=`,
-        `'${opts.start}'::timestamp AND "TimeInstant"`,
-        `< '${opts.finish}'::timestamp`,
-        'ORDER by "TimeInstant" DESC'
-      ];
+      if (opts.format === 'csv') {
+        fieldsql = dt.varfields.map(
+          function(v) {
+            return `"${v.field}"`;
+          }
+        ).join(',');
 
-      promises.push(this.cachedQuery(sql.join(' ')));
+        sql = `
+          SELECT
+            "TimeInstant" AS time,
+            ${fieldsql}
+          FROM
+            ${table}
+          ${filter}
+            id_entity = '${opts.id_device}' AND
+            "TimeInstant" >= '${opts.start}'::timestamp AND
+            "TimeInstant" < '${opts.finish}'::timestamp
+          ORDER BY "TimeInstant" ASC
+        `;
+      } else {
+        fieldsql = dt.varfields.map(
+          function(v) {
+            return `'${v.id_var}',"${v.field}"`;
+          }
+        ).join(',');
+
+        sql = `
+          SELECT
+            "TimeInstant" AS time,
+            json_build_object(${fieldsql}) AS data
+          FROM
+            ${table}
+          ${filter}
+            id_entity = '${opts.id_device}' AND
+            "TimeInstant" >= '${opts.start}'::timestamp AND
+            "TimeInstant" < '${opts.finish}'::timestamp
+          ORDER BY "TimeInstant" DESC
+        `;
+      }
+
+      promises.push(this.cachedQuery(sql));
     }).bind(this));
 
     return Promise.all(promises);

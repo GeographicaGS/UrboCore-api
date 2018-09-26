@@ -119,21 +119,37 @@ router.post('/:id_entity/:id_device/raw',
   responseValidator,
   auth.validateVariables('vars'),
   function(req, res, next) {
+    let id_entity = req.params.id_entity;
+    let start = req.body.time.start;
+    let finish = req.body.time.finish;
+    let format = req.body.format;
 
     var opts = {
       scope: req.scope,
       id_device: req.params.id_device,
-      id_entity: req.params.id_entity,
-      start: req.body.time.start,
-      finish: req.body.time.finish,
+      id_entity: id_entity,
+      start: start,
+      finish: finish,
       id_vars: req.body.vars,
-      filters: req.body.filters||{}
+      filters: req.body.filters||{},
+      format: format
     };
 
     var model = new DevicesModel();
     model.getDevicesRawData(opts)
       .then(function(data) {
-        res.json(data);
+        if (format === 'csv') {
+          utils.json2csvWrapper({ data: data, del: ';' }, function(err, csv) {
+            if (err)
+              return next(err);
+            res.setHeader('Content-disposition',
+              `attachment; filename=${id_entity}_${start}_${finish}.csv`);
+            res.set('Content-Type', 'text/csv');
+            res.send(new Buffer(csv));
+          });
+        } else {
+          res.json(data);
+        }
       })
       .catch(function(err) {
         next(err);
