@@ -87,8 +87,8 @@ pipeline{
             sh "docker login -u ${ USERNAME } -p ${ PASSWORD }"
             sh "docker tag geographica/urbocore_api:${ git_commit } geographica-gs/urbocore_api:${ env.DEPLOY_TO }"
             sh "docker tag geographica/urbocore_api:${ git_commit } geographica-gs/urbocore_api:${ env.DEPLOY_TO }-${ build_name }"
-            sh "docker push geographica/urbo_core_www:${ env.DEPLOY_TO }"
-            sh "docker push geographica/urbo_core_www:${ env.DEPLOY_TO }-${ build_name }"
+            sh "docker push geographica/urbocore_api:${ env.DEPLOY_TO }"
+            sh "docker push geographica/urbocore_api:${ env.DEPLOY_TO }-${ build_name }"
           }
 
           if (env.DEPLOY_TYPE == "ansible") {
