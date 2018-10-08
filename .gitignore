@@ -44,3 +44,6 @@ db/migrations/*
 config.dev.yml
 config.prod.yml
 deploy.sh
+
+# IDE/Text editors
+.vscode
