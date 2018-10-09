@@ -85,8 +85,8 @@ pipeline{
 
           withCredentials([[$class: 'UsernamePasswordMultiBinding',credentialsId: 'dockerhub',usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
             sh "docker login -u ${ USERNAME } -p ${ PASSWORD }"
-            sh "docker tag geographica/urbocore_api:${ git_commit } geographica-gs/urbocore_api:${ env.DEPLOY_TO }"
-            sh "docker tag geographica/urbocore_api:${ git_commit } geographica-gs/urbocore_api:${ env.DEPLOY_TO }-${ build_name }"
+            sh "docker tag geographica/urbocore_api:${ git_commit } geographica/urbocore_api:${ env.DEPLOY_TO }"
+            sh "docker tag geographica/urbocore_api:${ git_commit } geographica/urbocore_api:${ env.DEPLOY_TO }-${ build_name }"
             sh "docker push geographica/urbocore_api:${ env.DEPLOY_TO }"
             sh "docker push geographica/urbocore_api:${ env.DEPLOY_TO }-${ build_name }"
           }
