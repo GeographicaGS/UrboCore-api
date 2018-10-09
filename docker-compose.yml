@@ -26,7 +26,7 @@ services:
 
   api:
     container_name: urbo_api
-    image: geographica/urbocore-api:production
+    image: geographica/urbocore_api:production
     # volumes:
       # Mount directories containing the desired verticals
       # - path/to/verticals/my_vertical:/usr/src/app/verticals/my_vertical
