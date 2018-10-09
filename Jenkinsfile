@@ -36,7 +36,7 @@ pipeline{
         label 'docker'
       } }
       steps {
-        sh "docker run -i --rm --name urbocore_api--${build_name} -e 'NODE_ENV=development' geographica/urbocore_api npm run lint"
+        sh "docker run -i --rm --name urbocore_api--${build_name} -e 'NODE_ENV=development' geographica/urbocore_api:${git_commit} npm run lint"
       }
     }
 
