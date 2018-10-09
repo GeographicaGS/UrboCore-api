@@ -1,5 +1,5 @@
 --
--- Copyright 2017 Telefónica Digital España S.L.
+-- Copyright 2018 Telefónica Digital España S.L.
 --
 -- This file is part of UrboCore API.
 --
@@ -19,35 +19,36 @@
 -- For those usages not covered by this license please contact with
 -- iot_support at tid dot es
 --
-/*
-* Script to load all PL/PgSQL functions
-*/
 
--- Connection parameters
+-- Set the following parameters according to your needs
+---------------------------------------
+
+-- Database config
 \set dbname urbo
+\set password urbo
+\set owner urbo_admin
 
+-- API login for the superuser
+\set admin_email 'admin@geographica.gs'
+\set admin_pwd 'admin'
+
+---------------------------------------
+
+-- Database initialization
+CREATE USER :owner WITH PASSWORD :'password';
+CREATE DATABASE :dbname WITH OWNER :owner;
+
+-- Connection to new database as admin
 \c :dbname
 
--- Entities functions
-\ir common/urbo_entities.sql
+-- Adding necessary pgsql extensions
+CREATE EXTENSION postgis;
+CREATE EXTENSION intarray;
 
--- Generic map functions
-\ir common/CDB_JenksBins.sql
-\ir common/CDB_QuantileBins.sql
-\ir common/urbo_utils.sql
-\ir common/urbo_size_row.sql
-\ir common/urbo_last_agg.sql
+-- Set up base schemas and tables
+\ir ddl/urbo_init_public.sql
+\ir ddl/urbo_init_metadata.sql
+\ir ddl/urbo_init_logs.sql
 
--- Users graph
-\ir common/urbo_create_graph_for_scope.sql
-\ir common/urbo_metadata_usergraph.sql
-\ir common/urbo_multiscope_childs_usergraph.sql
-
--- Carto
--- CARTO \ir carto/urbo_compute_geodesic_lines.sql
--- CARTO \ir carto/urbo_get_user_tables.sql
-
--- DDL
-\ir common/ddl/urbo_categories_ddl.sql
--- \ir common/ddl/urbo_createtables_frames_scope.sql
--- \ir common/ddl/urbo_droptables_fromcategory.sql  -- Helper function for development
+-- Create superuser users in DB and API
+\ir dml/urbo_init_admin.sql
