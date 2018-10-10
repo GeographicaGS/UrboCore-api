@@ -32,18 +32,20 @@ node_modules
 *.private.*
 tmp/
 Icon
-config.yml
 db-config.env
 site
 report
 repo_verticals/
 verticals/*
 !verticals/index.js
-db/migrations/*
-!db/migrations/.gitkeep
+db/migrations
 config.dev.yml
 config.prod.yml
 deploy.sh
-
-# IDE/Text editors
+.git
+[dD]ocker*
+Jenkinsfile
+docs
+scripts
+test
 .vscode

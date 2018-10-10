@@ -2,23 +2,42 @@ version: "3"
 
 services:
   postgis:
+    container_name: urbo_db
     image: geographica/postgis:breezy_badger
     volumes:
-      - db-data:/data
-      - ./:/usr/src
+      - urbo-db-data:/data
+      - ./db:/usr/src/db
+    environment:
+      LOCALE: "es_ES"
+      PSQL_SCRIPTS: "/usr/src/db/init/bootstrap.sql;/usr/src/db/bootstrap.sql"
+    network_mode: bridge
+    restart: always
 
   redis:
+    container_name: urbo_redis_api
     image: redis:latest
     ports:
       - "6379:6379"
     volumes:
       - ./redis.conf:/usr/local/etc/redis/redis.conf
     command: redis-server /usr/local/etc/redis/redis.conf
+    network_mode: bridge
+    restart: always
 
   api:
-    build: .
-    ports:
-      - "3005:3000"
+    container_name: urbo_api
+    image: geographica/urbocore_api:production
+    # volumes:
+      # Mount directories containing the desired verticals
+      # - path/to/verticals/my_vertical:/usr/src/app/verticals/my_vertical
+      # Or copy the required verticals inside the verticals directory
+      # and mount that. Remember not to override the index.js file
+      # - path/to/verticals:/usr/src/app/verticals
+    network_mode: bridge
+    restart: always
 
+# You will need to create a volume first
+# docker volume create urbo-db-data
 volumes:
-  db-data:
+  urbo-db-data:
+    external: true

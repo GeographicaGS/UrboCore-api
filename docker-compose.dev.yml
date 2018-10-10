@@ -1,0 +1,34 @@
+version: "3"
+
+services:
+  postgis:
+    ports:
+      - "5435:5432"
+    restart: unless-stopped
+
+  api:
+    image: geographica/urbocore_api:dev
+    volumes:
+      - ./:/usr/src/app
+      - node_modules:/usr/src/app/node_modules
+      #  Mount directories containing the desired verticals
+      # - path/to/verticals/my_vertical:/usr/src/app/verticals/my_vertical
+      # Or copy the required verticals inside the verticals directory
+      # Remember not to override the index.js file
+      # - path/to/verticals:/usr/src/app/verticals
+    ports:
+      - "3005:3000"
+      - "9229:9229"
+      # Old debugging ports, with 9229 we don't need those
+      # 9229 can be used for chromium-based web debuggers and IDEs/editors
+      # - "8080:8080"
+      # - "5858:5858"
+    # This command runs the "dev" configuration for gulp.
+    # The API will auto-reload when modifying any .js file
+    command: npm run-script start-dev
+    # Old debugging command, remember to map the corresponding ports
+    # command: npm run-script debug
+    restart: unless-stopped
+
+volumes:
+  node_modules:
