@@ -54,6 +54,8 @@ pipeline{
           env.DEPLOY_TYPE = "ansible"
           if ( env.BRANCH_NAME == "master" ) {
             env.DEPLOY_TO = "production"
+            // Rebuilding the image in order to set the API in production mode
+            sh "docker build --pull=true --build-arg=NODE_ENV=production -f Dockerfile.new -t geographica/urbocore_api:${git_commit} ."
           } else {
             env.DEPLOY_TO = "${env.BRANCH_NAME}"
           }
