@@ -24,7 +24,7 @@
 */
 
 -- Connection parameters
-\set dbname urbo
+\set dbname `echo "${URBO_DB_NAME:-urbo}"`
 
 \c :dbname
 
