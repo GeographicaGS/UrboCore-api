@@ -24,13 +24,13 @@
 ---------------------------------------
 
 -- Database config
-\set dbname urbo
-\set password urbo
-\set owner urbo_admin
+\set dbname `echo "$URBO_DB_NAME"`
+\set password `echo $URBO_DB_PASSWD`
+\set owner `echo "$URBO_DB_OWNER"`
 
 -- API login for the superuser
-\set admin_email 'admin@geographica.gs'
-\set admin_pwd 'admin'
+\set admin_email `echo "$URBO_ADMIN_EMAIL"`
+\set admin_pwd `echo $URBO_ADMIN_PASSWD`
 
 ---------------------------------------
 
