@@ -53,6 +53,7 @@ services:
 
 networks:
   net_urbo_db:
+    name: net_urbo_db
 
 # You will need to create a volume first
 # docker volume create urbo-db-data
