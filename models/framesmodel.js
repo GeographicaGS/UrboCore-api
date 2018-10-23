@@ -33,7 +33,7 @@ class FramesModel extends PGSQLModel {
 
     var vertical_filter = opts.vertical ? `AND vertical = '${opts.vertical}'` : '';
 
-    var sql = `SELECT id, url, title, description, source, datatype, type, vertical
+    var sql = `SELECT id, url, title, description, description_type, source, datatype, type, vertical
       FROM public.frames_scope
       WHERE scope_id = '${opts.scope}'
       AND type = '${opts.type}'
@@ -51,7 +51,7 @@ class FramesModel extends PGSQLModel {
   }
 
   getFrame (opts) {
-    var sql = `SELECT id, url, title, description, source, datatype, type, vertical
+    var sql = `SELECT id, url, title, description, description_type, source, datatype, type, vertical
       FROM public.frames_scope
       WHERE id = '${opts.id}'`;
 
@@ -69,8 +69,8 @@ class FramesModel extends PGSQLModel {
 
     var vertical = opts.vertical ? `'${opts.vertical}'` : 'NULL';
 
-    var sql = `INSERT INTO public.frames_scope (title, url, description, source, datatype, type, vertical, scope_id)
-      VALUES ('${opts.title}', '${opts.url}', '${opts.description}', '${opts.source}', '${opts.datatype}', '${opts.type}', ${vertical}, '${opts.scope}')`;
+    var sql = `INSERT INTO public.frames_scope (title, url, description, description_type, source, datatype, type, vertical, scope_id)
+      VALUES ('${opts.title}', '${opts.url}', '${opts.description}', '${opts.description_type}', '${opts.source}', '${opts.datatype}', '${opts.type}', ${vertical}, '${opts.scope}')`;
 
     return this.promise_query(sql)
       .then(function (data) {
@@ -90,6 +90,7 @@ class FramesModel extends PGSQLModel {
       title = '${opts.title}',
       url = '${opts.url}',
       description = '${opts.description}',
+      description_type = '${opts.description_type}',
       source = '${opts.source}',
       datatype = '${opts.datatype}',
       type = '${opts.type}',

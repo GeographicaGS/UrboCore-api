@@ -117,12 +117,17 @@ ALTER TABLE public.dashboard_variables OWNER TO :owner;
 
 DROP TYPE IF EXISTS public.frame_type;
 CREATE TYPE public.frame_type AS ENUM ('cityanalytics', 'scope', 'vertical');
+-- create a new data_type to used for description_type column inside frame_types
+DROP TYPE IF EXISTS public.descrip_type;
+CREATE TYPE public.descrip_type AS ENUM ('text', 'image', 'iframe');
+-- 
 
 CREATE TABLE public.frames_scope (
     id bigint NOT NULL,
     title text NOT NULL,
     url text NOT NULL,
     description text,
+    description_type public.descrip_type DEFAULT 'text' NOT NULL,
     source text,
     datatype text,
     scope_id character varying(255) NOT NULL,
