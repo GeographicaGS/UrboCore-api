@@ -13,17 +13,20 @@ This repository provides the base code for the web API and needs to be complemen
 
 ## Requirements
 * NodeJS version 6.x or greater.
-* Docker version 17.06 or greater.
+* Docker version 18.02 or greater.
 * We recommend using GNU/Linux as server, but is not mandatory.
 
 ## Notes for developers
-The development configurations for the different containers required by the API are defined in the *docker-compose.dev.yml* file. In order to use these configs you will have to append to your docker-compose commands two `-f` flags. For example:
+The development configurations for the different containers required by the API are defined in the *docker-compose.override.yml* file. By default, docker-compose will override/merge the configuration existing in the *docker-compose.yml* file with the contents of the *.override.yml* file. This means that when you execute `docker-compose up` you will start the development environment by default. You can find more information about how docker-compose allows you to extend configurations [here](https://docs.docker.com/compose/extends/).
+
+If you wish to change/update the configurations you can create a new _docker-compose.*.yml_ file, that file will be ignored by default by git, so you can create as many configurations as you wish.
+In order to use these configs you will have to append to your docker-compose commands two `-f` flags. For example:
 ```
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+docker-compose -f docker-compose.yml -f docker-compose.example.yml up -d
 ```
-This leads to more difficult to read commands, our recommendation is to create an alias in your shell, we call it `dcp`:
+This leads to more difficult to read commands, our recommendation is to create an alias in your shell, let's call it `dcp`:
 ```
-alias dcp="docker-compose -f docker-compose.yml -f docker-compose.dev.yml"
+alias dcp="docker-compose -f docker-compose.yml -f docker-compose.example.yml"
 ```
 With this alias you can issue commands faster, the previous example ends up like this:
 ```
@@ -44,7 +47,7 @@ In order to run this application you will need to install UrboCore API along wit
 ```
 docker-compose up api
 # Or
-dcp up -d api  # Debug with Node inspector
+dcp up -d api  # To use your custom configuration
 ```
 
 ### Setting up the database
@@ -53,23 +56,21 @@ The `postgis` service defined in the docker-compose files will mount by default 
 ```
 docker volume create urbo-db-data
 ```
-2. (Optional) Change the default values existing in `db/init/bootstrap.sql` and `db/bootstrap.sql`. At startup a database and a new PostgreSQL user for the API will be created, the created user will be granted full access to the new database. The process will end with the creation of the superuser for logging in the application. You can change the following parameters:
-   - `owner`: The urbo database's owner. This is the name of the PostgreSQL user that will have full access to the database created.
-   - `password`: The password to for the PostgreSQL user.
-   - `dbname`: The name for the new database.
-   - `admin_email`: The login email for the admin user.
-   - `admin_password`: The password for the admin user.
+1. (Optional) Create an alternative _docker-compose.*.yml_ file with alternative values for the database environment variables. At startup a database and a new PostgreSQL user are created in order to be used by the API. The created user will be granted full access to the new database. The process will end with the creation of a superuser that can manage the application. You can change the following environment variables:
+   - `URBO_DB_OWNER`: The urbo database's owner. This is the name of the Postgres user that will have full access to the database created.
+   - `URBO_DB_PASSWD`: The password to for the PostgreSQL user.
+   - `URBO_DB_NAME`: The name for the new database.
+   - `URBO_ADMIN_EMAIL`: The login email for the admin user.
+   - `URBO_ADMIN_PASSWD`: The password for the admin user.
 
-3. Start the database:
+2. Start the database:
 ```
-docker-compose up -d postgis
-# Or
-dcp up -d postgis  # Maps port 5435 on your host to the 5432 in the container
+docker-compose up -d postgis  # Maps port 5435 on your host to the 5432 port in the container
 ```
 
 ### Managing pluggable verticals
 The process of installing a vertical consists in copying the necessary resources (routes, models, etc.) into the *verticals* folder inside the container. Both production and development configurations can be modified in order to declare a docker volume and mount the resources.
-The *install-vertical* tool is handy if you wish to copy those resources from a directory containing different verticals. Take into account that you will need to install Node.js and the necessary dependencies in your host with npm.
+The *install-vertical* tool is handy if you wish to copy those resources from a directory containing different verticals. Take into account that you will need to install Node.js and the necessary dependencies in your host.
 
 #### Install verticals
 To install or update a vertical you just need to execute:
@@ -87,14 +88,14 @@ npm run-script delete-vertical -- <vertical-name>
 
 Remember to restart the server in order to apply this changes.
 
-You can think of other approaches, such as copying the resources manually (look for the *api* directory inside each vertical) into one directory and mounting that. Keep in mind that you need to preserve the `index.js` file!
+You can think of other approaches, such as copying the resources manually (look for the *api* directory inside each vertical) into one directory and mounting that. Keep in mind that you need to preserve the `index.js` file existing in the verticals folders.
 
 ### API development mode
-The *docker-compose.dev.yml* file creates containers with an alternative configuration for the Postgres and the API:
+The *docker-compose.override.yml* file creates containers with an alternative configuration for the Postgres and the API:
 - Postgres:
     - Publishes to your host the default PostgreSQL port in 5435. Useful for local connections with psql or PgAdmin.
 - API:
-    - Starts the Node server with the Inspector mode. This mode allows you to debug the API with your favourite IDE, text editor or Chromium-based web browser. The debug port (9229) will be bridged to your host, so you can debug as if you had all the dependencies installed in your machine. The API will start with a breakpoint at the startup, you will need to connect to the debug process in order to continue with the execution.
+    - Starts the Node server with the Inspector mode. This mode allows you to debug the API with your favourite IDE, text editor or Chromium-based web browser. The debug port (9229) will be bridged to your host, so you can debug as if you had an instance of the server running on your machine. The API will start with a breakpoint on the first line of code, you will need to connect to the debug process in order to continue with the execution.
     - Publishes the Urbo API container listening port in your host's 3005 port. Send HTTP requests to the API in http://localhost:3005
 
 ## Testing
@@ -105,7 +106,7 @@ docker-compose run api npm run-script test
 
 ## API Documentation
 
-The API documentation is available at https://geographicags.github.io/UrboCore-api/.
+The API documentation is available at https://geographicags.github.io/Urbo-docs/.
 
 ### Build documentation
 

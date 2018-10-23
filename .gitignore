@@ -44,7 +44,8 @@ db/migrations/*
 config.dev.yml
 config.prod.yml
 deploy.sh
-docker-compose.dev.yml
+docker-compose.*.yml
+!docker-compose.override.yml
 
 # IDE/Text editors
 .vscode
