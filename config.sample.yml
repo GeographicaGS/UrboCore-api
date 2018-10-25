@@ -39,7 +39,8 @@ redis:
   host: redis
   port: 6379
   db: 0
-  password: password
+  # Not necessary in new deployments
+  # password: password
   ttl: 15  # In minutes
 
 ldap:

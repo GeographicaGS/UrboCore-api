@@ -104,7 +104,7 @@ router.post('/',
       else {
         if (req.withDeMA) {
           let dema = new OrionDeMA(config.getDeMA(res.locals.dema_access_token));
-          dema.updateScopeStatus(data.id, 'created')
+          dema.updateScopeStatus(data.id, 'created', res.user)
           .then( d => {
             return res.status(201).json(data);
           })
@@ -144,7 +144,7 @@ router.put('/:scope',
         else {
           if (req.withDeMA) {
             let dema = new OrionDeMA(config.getDeMA(res.locals.dema_access_token));
-            dema.updateScopeStatus(req.params.scope, 'updated')
+            dema.updateScopeStatus(req.params.scope, 'updated', res.user)
             .then( d => {
               return res.sendStatus(200);
             })

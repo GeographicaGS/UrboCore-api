@@ -15,3 +15,5 @@ pages:
   # Verticals docs go here
 - Sockets: sockets.md
 - Database: database.md
+- Filtering:
+  - the_geom: geom_filter.md

@@ -28,6 +28,7 @@ var log = utils.log();
 var VariablesModel = require('../models/variablesmodel');
 var auth = require('../auth.js');
 var responseValidator = utils.responseValidator;
+const geomValidator = utils.geomValidator;
 var CSVFormatter = require('../protools/csvformatter');
 var timesValidator = utils.timesValidator;
 
@@ -45,7 +46,7 @@ var rankingValidator = function(req, res, next) {
 /*
  * It returns the current values of the requested variables ranked by a variable.
  */
-router.post('/ranking/now', rankingValidator, responseValidator, auth.validateVariables('vars'), function(req, res, next) {
+router.post('/ranking/now', rankingValidator, geomValidator, responseValidator, auth.validateVariables('vars'), function(req, res, next) {
   var opts = {
     scope: req.scope,
     filters: req.body.filters || {},
@@ -329,23 +330,30 @@ router.get('/:id/devices_group_timeserie',
 
 
 var histogramDiscreteNowValidator = function(req, res, next) {
+  var subVariable = req.body.subVariable;
 
   // Sync validators
   req.checkBody('filters', 'required').optional().notEmpty();
   req.checkBody('ranges', 'required').notEmpty();
   req.checkBody('totals', 'boolean required').optional().isBoolean();
   req.checkBody('filters.bbox', 'array required').optional().isArray();
+  req.checkBody('subRanges', 'Array required if field defined').optional().notEmpty();
+  req.checkBody('subVariable', 'Subrange variable required if field defined').optional().notEmpty();
 
   // Master async validator for filters
   req.checkBody('ranges', 'invalid ranges').validRanges(req.params.scope,req.params.id);
 
-  return next();
+  if (subVariable)
+    auth.validateVariables('subVariable')(req, res, next);
+  else
+    return next();
 }
 
 
 // HISTOGRAMS
 router.post('/:id/histogram/discrete/now',
   histogramDiscreteNowValidator,
+  geomValidator,
   responseValidator,
   auth.validateVariables('id'),
   function(req, res, next) {
@@ -356,8 +364,10 @@ router.post('/:id/histogram/discrete/now',
       scope: req.scope,
       ranges: req.body.ranges,
       filters: req.body.filters || {},
-      totals: req.body.totals || false
-    }
+      totals: req.body.totals || false,
+      subRanges: req.body.subRanges,
+      subVariable: req.body.subVariable
+    };
 
     var model = new VariablesModel();
     model.getVariablesDiscreteHistogramNow(opts)
@@ -739,5 +749,39 @@ router.post('/:id/bounding_box', auth.validateVariables('id'), function(req, res
     next(utils.error(err, 400));
   });
 });
+
+var comparisonValidator = function(req, res, next) {
+  var start = req.body.timestamp;
+  req.checkBody('timestamp', 'A valid timestamp following format YYYY-MM-DDTHH:MM:SSZ').notEmpty();
+  req.checkBody('interval', 'A valid PostgreSQL interval').notEmpty();
+  req.checkBody('filters', 'Optional, desired filtering information').optional().notEmpty();
+
+  if (start && new Date(start) === 'Invalid Date')
+    return next(utils.error('Wrong time parameter [timestamp] (mandatory). Format: YYYY-MM-DDT00:00:00',400));
+  return next();
+};
+
+router.post('/:id/comparison',
+  auth.validateVariables('id'),
+  comparisonValidator,
+  utils.geomValidator,
+  responseValidator,
+  function(req, res, next) {
+    var opts = {
+      scope: req.scope,
+      idVar: req.params.id,
+      date: req.body.timestamp,
+      interval: req.body.interval,
+      filters: req.body.filters || {'condition': {}}
+    };
+    new VariablesModel().comparison(opts)
+    .then(data => {
+      res.json(data);
+    })
+    .catch(err => {
+      next(utils.error(err, 400))
+    });
+  }
+);
 
 module.exports = router;

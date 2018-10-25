@@ -1,0 +1,63 @@
+version: "3.6"
+
+services:
+  postgis:
+    container_name: urbo_db
+    image: geographica/postgis:breezy_badger
+    volumes:
+      - urbo-db-data:/data
+      - ./db:/usr/src/db
+    environment:
+      LOCALE: "es_ES"
+      PSQL_SCRIPTS: "/usr/src/db/init/bootstrap.sql;/usr/src/db/bootstrap.sql"
+      # DB PARAMETERS EXAMPLE
+      URBO_DB_NAME: urbo
+      URBO_DB_OWNER: urbo_admin
+      URBO_DB_PASSWD: urbo
+      URBO_ADMIN_EMAIL: example@geographica.gs
+      URBO_ADMIN_PASSWD: admin
+    networks:
+      - net_urbo_db
+    ports:
+      - "5435:5432"
+    restart: unless-stopped
+
+  redis:
+    ports:
+      - "6379:6379"
+
+  api:
+    image: geographica/urbocore_api:dev
+    volumes:
+      - ./:/usr/src/app
+      - node_modules:/usr/src/app/node_modules
+      # Mount directories containing the desired verticals
+      # - path/to/verticals/my_vertical:/usr/src/app/verticals/my_vertical
+      # Or copy the required verticals inside the verticals directory
+      # and mount that. Remember not to override the index.js file
+      # - path/to/verticals:/usr/src/app/verticals
+    networks:
+      - net_urbo_db
+    ports:
+      - "3005:3000"
+      - "9229:9229"
+      # Old debugging ports, with 9229 we don't need those
+      # 9229 can be used for chromium-based web debuggers and IDEs/editors
+      # - "8080:8080"
+      # - "5858:5858"
+    # This command runs the "dev" configuration for gulp.
+    # The API will auto-reload when modifying any .js file
+    command: npm run-script start-dev
+    # Old debugging command, remember to map the corresponding ports
+    # command: npm run-script debug
+
+networks:
+  net_urbo_db:
+    name: net_urbo_db
+
+# You will need to create a volume first
+# docker volume create urbo-db-data
+volumes:
+  urbo-db-data:
+    external: true
+  node_modules:

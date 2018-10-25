@@ -1,24 +1,20 @@
-version: "3"
+version: "3.6"
 
 services:
-  postgis:
-    image: geographica/postgis:breezy_badger
-    volumes:
-      - db-data:/data
-      - ./:/usr/src
-
   redis:
+    container_name: urbo_redis_api
     image: redis:latest
-    ports:
-      - "6379:6379"
-    volumes:
-      - ./redis.conf:/usr/local/etc/redis/redis.conf
-    command: redis-server /usr/local/etc/redis/redis.conf
+    command: redis-server --maxmemory 500mb --maxmemory-policy allkeys-lru
+    networks:
+      - net_urbo_api
+    restart: unless-stopped
 
   api:
-    build: .
-    ports:
-      - "3005:3000"
+    image: geographica/urbocore_api:production
+    container_name: urbo_api
+    networks:
+      - net_urbo_api
+    restart: unless-stopped
 
-volumes:
-  db-data:
+networks:
+  net_urbo_api:

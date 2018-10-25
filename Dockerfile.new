@@ -1,0 +1,27 @@
+FROM node:6.10.0-alpine
+
+RUN mkdir -p /usr/src/app
+WORKDIR /usr/src/app
+
+ARG NODE_ENV
+ENV NODE_ENV $NODE_ENV
+COPY package.json /usr/src/app/
+
+RUN \
+    set -x \
+    && apk add --no-cache bash \
+    && apk add --no-cache --virtual build-dep \
+        git \
+        make \
+        gcc \
+        g++ \
+        python \
+    && npm install \
+    && npm cache clean --force \
+    && apk del build-dep
+
+COPY . /usr/src/app
+
+EXPOSE 3000
+
+CMD [ "npm", "start" ]

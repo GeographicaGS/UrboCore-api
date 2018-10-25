@@ -23,6 +23,11 @@
 * Script to load all PL/PgSQL functions
 */
 
+-- Connection parameters
+\set dbname `echo "${URBO_DB_NAME:-urbo}"`
+
+\c :dbname
+
 -- Entities functions
 \ir common/urbo_entities.sql
 
@@ -44,5 +49,5 @@
 
 -- DDL
 \ir common/ddl/urbo_categories_ddl.sql
-\ir common/ddl/urbo_createtables_frames_scope.sql
+-- \ir common/ddl/urbo_createtables_frames_scope.sql
 -- \ir common/ddl/urbo_droptables_fromcategory.sql  -- Helper function for development

@@ -63,6 +63,7 @@ class MapsModel extends PGSQLModel {
       let qb = new QueryBuilder(opts);
       let bbox = qb.bbox();
       let filter = qb.filter();
+      let the_geom = qb.the_geom();
 
       let schema = vars.dbschema;
       let table = vars.table_name;
@@ -73,7 +74,7 @@ class MapsModel extends PGSQLModel {
           FROM (
             SELECT ${ columns.join(', ') }
               FROM ${ schema }.${ table }_lastdata
-              WHERE TRUE ${ bbox } ${ filter }
+              WHERE TRUE ${ bbox } ${ the_geom } ${ filter }
           ) ld`;
 
       for (let i = 0; i < aggVars.length; i++) {

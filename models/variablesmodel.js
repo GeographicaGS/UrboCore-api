@@ -443,94 +443,136 @@ VariablesModel.prototype.getVariableDevicesGroupTimeSerie = function(opts) {
 
 VariablesModel.prototype.getVariablesDiscreteHistogramNow = function(opts) {
   var metadata = new MetadataInstanceModel();
-  return metadata.getVarQuery(opts.scope, opts.id)
-  .then((function(data) {
-    return this.promiseRow(data);
-  }).bind(this))
-  .then(function(d) {
+  var varQueryVars = [opts.id];
+  if (opts.subVariable) {
+    varQueryVars.push(opts.subVariable);
+  }
+  return metadata.getVarQueryArray(opts.scope, varQueryVars)
+    .then((function(data) {
+      return this.promiseRow(data);
+    }).bind(this))
+    .then(function(d) {
+      var data = {};
+      data.ranges = opts.ranges;
 
+      // Rich data
+      var actualTable = opts.scope + '.' + d.now;
+      opts.table = actualTable.split('.')[1];
 
-    var data = {};
-    data.ranges = opts.ranges;
-
-    // Rich data
-    var actualTable = opts.scope + '.' + d.now;
-    opts.table = actualTable.split('.')[1];
-    opts.raw = d;
-
-
-    /*
-    SELECT d.entity_field as category, count(d.entity_field) as total from ${actualTable}
-    */
-
-    var promises = [];
-    promises.push(function() {
-      var qb = new QueryBuilder(opts);
-      return qb
-      .select(d.entity_field,  'category')
-      .count(d.entity_field, 'value')
-      .from(actualTable)
-      .condition()
-      .then(qb.group)
-      .then(function(plainSQL) {
-        return Promise.resolve(plainSQL);
-      })
-      .catch(function(err) {
-        log.error(err);
-        return Promise.reject(err);
-      });
-    }());
-
-    // If totals, repeat query without filtering
-    if (opts.totals) {
-      promises.push(function() {
-        var qb = new QueryBuilder(opts);
-        return qb
-        .select(d.entity_field,  'category')
-        .count(d.entity_field, 'total')
-        .from(actualTable)
-        .nocondition()
-        .then(qb.group)
-        .then(function(plainSQL) {
-          return Promise.resolve(plainSQL);
-        })
-        .catch(function(err) {
-          log.error(err);
-          return Promise.reject(err);
-        });
-      }());
-    }
-
-    data.SQLs = [];
-    return Promise.all(promises).then(function(sqls) {
-      for (var sql of sqls) {
-        data.SQLs.push(sql);
+      /*
+      * getVarQueryArray's result does not respect the input array's
+      * order, we must check if the first element is the variable
+      * obtained from the id parameter in the URL
+      */
+      if (opts.subVariable && d.vars_ids[0] !== opts.id[0]) {
+        let t_var = d.vars[1];
+        let t_var_id = d.vars_ids[1]
+        d.vars[1] = d.vars[0];
+        d.vars_ids[1] = d.vars_ids[0];
+        d.vars[0] = t_var;
+        d.vars_ids[0] = t_var_id;
       }
+
+      opts.raw = d;
+
+
+      var promises = [];
+
+      // Check if we have the sub ranges and the desired variable
+
+      if (opts.subRanges && opts.subVariable) {
+        promises.push(function() {
+          var qb = new QueryBuilder(opts);
+          return qb
+            .select(d.vars[0], 'category')
+            .select(d.vars[1], 'sub_category')
+            .count(d.vars[0], 'value')
+            .from(actualTable)
+            .condition()
+            .then(qb.group)
+            .then(function(plainSQL) {
+              return Promise.resolve(plainSQL);
+            })
+            .catch(function(err) {
+              log.error(err);
+              return Promise.reject(err);
+            });
+        }());
+      } else {
+        /*
+        SELECT d.entity_field as category, count(d.entity_field) as total from ${actualTable}
+        */
+        promises.push(function() {
+          var qb = new QueryBuilder(opts);
+          return qb
+            .select(d.vars[0],  'category')
+            .count(d.vars[0], 'value')
+            .from(actualTable)
+            .condition()
+            .then(qb.group)
+            .then(function(plainSQL) {
+              return Promise.resolve(plainSQL);
+            })
+            .catch(function(err) {
+              log.error(err);
+              return Promise.reject(err);
+            });
+        }());
+      }
+
+      // If totals, repeat query without filtering
+      if (opts.totals) {
+        promises.push(function() {
+          var qb = new QueryBuilder(opts);
+          return qb
+            .select(d.vars[0],  'category')
+            .count(d.vars[0], 'total')
+            .from(actualTable)
+            .nocondition()
+            .then(qb.group)
+            .then(function(plainSQL) {
+              return Promise.resolve(plainSQL);
+            })
+            .catch(function(err) {
+              log.error(err);
+              return Promise.reject(err);
+            });
+        }());
+      }
+
+      data.SQLs = [];
+      return Promise.all(promises).then(function(sqls) {
+        for (var sql of sqls) {
+          data.SQLs.push(sql);
+        }
+        return Promise.resolve(data);
+      });
+
+    })
+    .then((function(data) {
+      var promises = [];
+      for (var sql of data.SQLs) {
+        promises.push((function() {
+          return this.promise_query(sql, null);
+        }).bind(this)());
+      }
+
+      return Promise.all(promises).then(function(results) {
+        data.results = results;
+        if (opts.subRanges && opts.subVariable) {
+          data.subRanges = opts.subRanges;
+        }
+        return Promise.resolve(data);
+      });
+
+    }).bind(this))
+    .then(function(data) {
       return Promise.resolve(data);
+    })
+    .then(new HistFormatter().formatDiscrete)
+    .catch(function(err) {
+      return Promise.reject(err);
     });
-
-  })
-  .then((function(data) {
-    var promises = [];
-    for (var sql of data.SQLs) {
-      promises.push((function() {
-        return this.promise_query(sql, null);
-      }).bind(this)());
-    }
-
-    return Promise.all(promises).then(function(results) {
-      data.results = results;
-      return Promise.resolve(data);
-    });
-
-  }).bind(this))
-  .then(function(data) {
-    return Promise.resolve(data);
-  })
-  .then(new HistFormatter().formatDiscrete)
-  .catch(function(err) {
-    return Promise.reject(err);
-  });
 }
 
 VariablesModel.prototype.getVariablesContinuousHistogramNow = function(opts, cb) {
@@ -951,7 +993,7 @@ VariablesModel.prototype.rankingNow = function(opts) {
 
     .then(function(data) {
       var qb = new QueryBuilder(opts);
-      var filter = `${qb.bbox()} ${qb.filter()}`;
+      var filter = `${qb.bbox()} ${qb.the_geom()} ${qb.filter()}`;
 
       var varIds = data.vars_ids;
       var varNames = data.vars;
@@ -960,7 +1002,7 @@ VariablesModel.prototype.rankingNow = function(opts) {
       var order = opts.order || 'DESC';
       var limit = opts.limit ? `LIMIT ${opts.limit}` : '';
 
-      var sql = `SELECT "${varNames.join('", "')}"
+      var sql = `SELECT id_entity,"${varNames.join('", "')}"
           FROM ${data.dbschema}.${data.entitytables[0]}_lastdata
           WHERE true
           ${filter}
@@ -1028,7 +1070,7 @@ VariablesModel.prototype.rankingHistoric = function (opts) {
     var sql = `
       SELECT row_to_json(row) as device FROM (
         SELECT ${select}
-        FROM ${data.dbschema}.${data.entitytables[0]}
+        FROM ${data.dbschema}.${data.tablenames[0]}
         WHERE TRUE
         ${filter}
         ${dates}
@@ -1235,6 +1277,60 @@ VariablesModel.prototype.boundingBox = function(opts) {
 
     var unique = new DummyFormatter().pipe(data.rows[0]);
     return Promise.resolve(unique);
+  });
+};
+
+VariablesModel.prototype.comparison = function(opts) {
+  return new MetadataInstanceModel().getVarQuery(opts.scope, opts.idVar)
+
+  .then(data => {
+    if (!data.rows.length) {
+      var err = new Error(`Variable '${opts.idVar}' not found in the '${opts.scope}' scope`);
+      return Promise.reject(err);
+    }
+
+    var table = data.rows[0].table_name;
+    var field = data.rows[0].entity_field;
+
+    var qb = new QueryBuilder(opts);
+    // Keep in mind that bbox filter is deprecated as of Jun 2018
+    var qry_filter = `${qb.the_geom()} ${qb.filter()}`;
+
+    var sql = `
+      WITH t_then AS (
+          SELECT  SUM(${field}) val,
+                  id_entity
+          FROM    ${opts.scope}.${table}
+          WHERE   "TimeInstant" >= '${opts.date}'::timestamp - '${opts.interval}'::interval - '${opts.interval}'::interval
+                  AND "TimeInstant" < '${opts.date}'::timestamp - '${opts.interval}'::interval
+                  ${qry_filter}
+          GROUP BY id_entity
+      ),   t_now  AS (
+          SELECT  SUM(${field}) val,
+                  id_entity
+          FROM    ${opts.scope}.${table}
+          WHERE   "TimeInstant" >= '${opts.date}'::timestamp - '${opts.interval}'::interval
+                  AND "TimeInstant" < '${opts.date}'::timestamp
+                  ${qry_filter}
+          GROUP BY id_entity
+      )
+      SELECT  COALESCE("then".val, 0) value_then,
+              COALESCE(now.val, 0) value_now,
+              CASE WHEN "then".val=0 THEN 0
+                   ELSE COALESCE((now.val - "then".val) / "then".val, 1) * 100
+              END percentage
+      FROM    t_then "then"
+      FULL JOIN t_now now
+      ON "then".id_entity = now.id_entity;
+    `
+
+    return this.cachedQuery(sql);
+  })
+
+  .then(data => {
+    var formatted = null;
+    formatted = new DummyFormatter().pipe(data.rows);
+    return Promise.resolve(formatted);
   });
 };
 

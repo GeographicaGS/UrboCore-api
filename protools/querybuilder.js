@@ -1,20 +1,20 @@
 // Copyright 2017 Telefónica Digital España S.L.
-// 
+//
 // This file is part of UrboCore API.
-// 
+//
 // UrboCore API is free software: you can redistribute it and/or
 // modify it under the terms of the GNU Affero General Public License as
 // published by the Free Software Foundation, either version 3 of the
 // License, or (at your option) any later version.
-// 
+//
 // UrboCore API is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero
 // General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU Affero General Public License
 // along with UrboCore API. If not, see http://www.gnu.org/licenses/.
-// 
+//
 // For those usages not covered by this license please contact with
 // iot_support at tid dot es
 
@@ -114,17 +114,35 @@ QueryBuilder.prototype.group = function(that) {
 
   if (Array.isArray(that.opts.ranges)) {
     if (typeof that.opts.ranges[0] === 'string') {
-      that.plainSQL += ' AND ' + that.opts.raw.entity_field + ' IN (\'' + that.opts.ranges.join('\', \'') + '\')';
-    }
+      that.plainSQL += ' AND ' + that.opts.raw.vars[0] + ' IN (\'' + that.opts.ranges.join('\', \'') + '\')';
+
+      if (that.opts.subRanges) {
+        if (Array.isArray(that.opts.subRanges)) {
+          if (typeof that.opts.subRanges[0] === 'string') {
+            let subVar = that.opts.raw.vars[1];
+            that.plainSQL += ' AND ' + subVar + ' IN (\'' + that.opts.subRanges.join('\', \'') + '\')';
+            var groupBySub = ', ' + subVar + ')';
+          }
+        } else {
+          return Promise.reject('Invalid subRange: ' + that.opts.subRanges);
+        }
+      }
+
         // Complex filter to group continues ranges
-    else if (typeof that.opts.ranges[0] === 'object') {
+    } else if (typeof that.opts.ranges[0] === 'object') {
       var fullCases = [];
       var rangeCounter = 1;
+      var field;
+      if (that.opts.raw.vars)
+        field = that.opts.raw.vars[0];
+      else
+        field = that.opts.raw.entity_field;
+
       for (var range of that.opts.ranges) {
         var cases = [];
         var stringCase = 'count(CASE WHEN ';
         for (var k in range) {
-          cases.push(that.opts.raw.entity_field + k + range[k]);
+          cases.push(field + k + range[k]);
         }
         stringCase += cases.join(' AND ');
         stringCase += ' THEN ' + rangeCounter;
@@ -142,7 +160,18 @@ QueryBuilder.prototype.group = function(that) {
       return Promise.reject('Invalid range: ' + that.opts.ranges);
     }
   }
-  that.plainSQL += ' GROUP BY (' + that.opts.raw.entity_field + ')';
+
+  if (that.opts.raw.vars)
+    that.plainSQL += ' GROUP BY (' + that.opts.raw.vars[0];
+  else
+    that.plainSQL += ' GROUP BY (' + that.opts.raw.entity_field;
+
+  if (groupBySub) {
+    that.plainSQL += groupBySub;
+  } else {
+    that.plainSQL += ')';
+  }
+
   return Promise.resolve(that.plainSQL);
 }
 
@@ -208,13 +237,53 @@ QueryBuilder.prototype.bbox = function() {
   return ret;
 }
 
-
 QueryBuilder.prototype.CARTObbox = function() {
   var ret = '';
   if ('filters' in this.opts && this.opts.filters!=null) {
     if ('bbox' in this.opts.filters && this.opts.filters.bbox!=null) {
       ret += ' AND the_geom && ' + util.format('ST_MakeEnvelope(%s,4326)', this.opts.filters.bbox);
     }
+  }
+  return ret;
+}
+
+QueryBuilder.prototype.the_geom = function(srid=4326) {
+  var ret = '';
+  var geom_filter = '';
+  var sql = [];
+  if ('filters' in this.opts && this.opts.filters!=null) {
+    if ('the_geom' in this.opts.filters && this.opts.filters.the_geom!=null) {
+      var tgeom = this.opts.filters.the_geom
+      if ('&&' in tgeom && tgeom['&&'] != null && Array.isArray(tgeom['&&']) && tgeom['&&'].length === 4) {
+        geom_filter = util.format('ST_MakeEnvelope(%s,4326)', tgeom['&&']);
+        if (srid !== 4326) {
+          geom_filter = util.format('ST_Transform(%s, %s)', geom_filter, srid);
+        }
+        sql.push(util.format('position && %s', geom_filter));
+      }
+
+      if ('id' in tgeom && tgeom.id != null) {
+        sql.push(util.format('id IN (%s)', tgeom.id));
+      }
+
+      if ('ST_Intersects' in tgeom && tgeom.ST_Intersects != null) {
+        var geom = '';
+        if (typeof(tgeom.ST_Intersects) === 'string') {
+          geom = util.format('%s::geometry', tgeom.ST_Intersects);
+        } else {
+          geom = util.format('ST_GeomFromGeoJSON(\'%s\')', JSON.stringify(tgeom.ST_Intersects));
+        }
+        geom_filter = util.format('ST_SetSRID(%s,4326)', geom);
+        if (srid !== 4326) {
+          geom_filter = util.format('ST_Transform(%s, %s)', geom_filter, srid);
+        }
+        sql.push(util.format('ST_Intersects(position,%s)', geom_filter));
+      }
+    }
+  }
+
+  if (sql.length !== 0) {
+    ret = util.format(' AND ((%s))', sql.join(') AND ('));
   }
   return ret;
 }
@@ -234,6 +303,7 @@ QueryBuilder.prototype.filter = function() {
 QueryBuilder.prototype.condition = function() {
     // Only ONE root element allowed
   this.plainSQL += this.bbox();
+  this.plainSQL += this.the_geom();
   this.plainSQL += this.filter();
   return Promise.resolve(this);
 }
