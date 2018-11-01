@@ -145,31 +145,35 @@ AS $$
     RETURN json_config;
   END;
 $$ LANGUAGE plpgsql;
+DROP FUNCTION IF EXISTS _urbo_updatemetadata(text,text,text,jsonb);
+CREATE OR REPLACE FUNCTION _urbo_updatemetadata(
+  scope text DEFAULT '',
+  metadata_level text DEFAULT '',
+  id_value text DEFAULT '',
+  json_config jsonb DEFAULT '{}'::jsonb
 )
 RETURNS void
 AS $$
   DECLARE
-    _json_object json;
     _key_json text;
+    _value_json text;
+    _column_check text;
   BEGIN
-    -- Iterate
-    SELECT ('{"schools.institute.position":{"var_name":"Posición del instituto"},"irrigation.humiditysensor":{"table_name":"irrigation_humiditysensor","mandatory":true},"dumps":{"config":{"carto":{"account":"cedus-admin"}},"nodata":false}}')::json into _json_object;
-
-    FOR _key_json IN SELECT * FROM json_object_keys(_json_object)
+    -- Update if exists
+    RAISE NOTICE '% exists!', metadata_level;
+    -- Update metadata -- iterate json configuration
+    FOR _key_json, _value_json IN SELECT * FROM json_each_text(json_config::json)
     LOOP
-      -- Check regex
-      RAISE NOTICE 'key %', _key_json;
-      IF (_key_json ~* '^(.*?)\.(.*?)\.(.*?)$') THEN
-        RAISE NOTICE 'it is a variable';
-        RAISE NOTICE 'adfdf: %', _json_object::json->_key_json;
-      ELSIF (_key_json ~* '^(.*?)\.(.*?)$') THEN
-        RAISE NOTICE 'it is a entity';
+      -- check if config exists and it is correct
+      RAISE NOTICE '%', format('SELECT column_name FROM information_schema.columns WHERE table_name=''%I'' and column_name= ''%L''', metadata_level, _key_json);
+      EXECUTE format('SELECT column_name FROM information_schema.columns WHERE table_name=''%I'' and column_name= %L', metadata_level, _key_json) into _column_check;
+      IF _column_check IS NOT NULL THEN
+        EXECUTE format('UPDATE metadata.%I SET %I = %L WHERE id_variable = %L', metadata_level, _key_json, _value_json, id_value);
+        RAISE NOTICE 'column updated';
       ELSE
-        RAISE NOTICE 'it is a category';
+        RAISE NOTICE 'column ''%'' not exists, can''t be updated', _key_json;
       END IF;
-
     END LOOP;
-
   END;
 $$ LANGUAGE plpgsql;
 
