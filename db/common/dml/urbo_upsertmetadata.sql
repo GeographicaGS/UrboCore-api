@@ -131,6 +131,20 @@ DROP FUNCTION IF EXISTS urbo_upsertmetadata(json);
 
 CREATE OR REPLACE FUNCTION urbo_upsertmetadata(
   _json_defs json DEFAULT '{}'::json
+DROP FUNCTION IF EXISTS _urbo_clean_config(jsonb);
+CREATE OR REPLACE FUNCTION _urbo_clean_config(
+  json_config jsonb DEFAULT '{}'::jsonb
+)
+RETURNS jsonb
+AS $$
+  BEGIN
+    IF (SELECT json_config->'id_scopes') IS NOT NULL THEN
+    	json_config := json_config - 'id_scopes';
+   		RAISE NOTICE 'json_config %', json_config;
+    END IF;
+    RETURN json_config;
+  END;
+$$ LANGUAGE plpgsql;
 )
 RETURNS void
 AS $$
