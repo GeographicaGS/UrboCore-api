@@ -104,6 +104,27 @@ Variable complete json definition
 
 
 
+DROP FUNCTION IF EXISTS _urbo_checkmetadata_scope(jsonb);
+CREATE OR REPLACE FUNCTION _urbo_checkmetadata_scope(
+  json_config jsonb DEFAULT '{}'::jsonb
+)
+RETURNS jsonb
+AS $$
+  DECLARE
+    _scopes jsonb DEFAULT '{}'::jsonb;
+  BEGIN
+    -- check scope of application
+    IF (SELECT json_config->'id_scopes') IS NOT NULL THEN
+      RAISE NOTICE 'scopes defined';
+      _scopes := json_config->'id_scopes';
+      RAISE NOTICE '_scopes %', _scopes;
+    ELSE
+      EXECUTE format('SELECT array_to_json(ARRAY(SELECT id_scope FROM metadata.scopes))') into _scopes;
+      RAISE NOTICE '_scopes %', _scopes;
+    END IF;
+    RETURN _scopes;
+  END;
+$$ LANGUAGE plpgsql;
 
 
 DROP FUNCTION IF EXISTS urbo_upsertmetadata(json);
