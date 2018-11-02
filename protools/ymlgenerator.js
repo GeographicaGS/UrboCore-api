@@ -25,7 +25,7 @@ var utils = require('../utils');
 var log = utils.log();
 var yaml = require('js-yaml');
 var fs = require('fs');
-var path = require("path");
+var path = require('path');
 var ymal = require('json2yaml'), connectorConfig;
 
 class YMLGenerator {
@@ -33,10 +33,10 @@ class YMLGenerator {
   constructor() {
     this.config = {};
     try {
-        this.config = yaml.safeLoad(fs.readFileSync(path.resolve(__dirname, '../templates') + '/base.yml'), 'utf8');
-        log.info(this.config);
+      this.config = yaml.safeLoad(fs.readFileSync(path.resolve(__dirname, '../templates') + '/base.yml'), 'utf8');
+      log.info(this.config);
     } catch (e) {
-        log.error(e);
+      log.error(e);
     }
   }
 
