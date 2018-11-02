@@ -39,7 +39,8 @@ router.get('/configs/connector/:category/:scope',auth.publishedOrLogged,function
   var ymlGenerator = new YMLGenerator();
   var ymlDoc = ymlGenerator.convertJSON2YML(ymlGenerator.config);
   log.info(ymlDoc);
-  res.download('../templates');
+  // res.download('../templates');
+  res.send("Connector Config Generator");
 });
 
 
