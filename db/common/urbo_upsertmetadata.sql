@@ -401,18 +401,19 @@ $$ LANGUAGE plpgsql;
 
 
 
+-- EXAMPLES:
+-- General mother upsert function
 -- select urbo_upsertmetadata('{"schools.institute.positionesss":{"var_name":"Posición del instituto"},"irrigation.humiditysensor":{"table_name":"irrigation_humiditysensor","mandatory":true},"dumps":{"config":{"carto":{"account":"cedus-admin"}},"nodata":false}}');
-
 -- select _urbo_upsertmetadata('variables', 'schools.institute.position', '{"id_scopes":["torino","madrid"],"var_names":"Posición del instituto TEXT1", "mandatory": "false"}');
-
+-- update metadata
 -- select _urbo_updatemetadata(NULL, 'variables', 'schools.institute.position', '{"var_name":"Posición del instituto TEXT2", "mandatory": "false"}');
-select _urbo_updatemetadata('madrid', 'entities', 'irrigation.humiditysensors', '{"table_name":"irrigation_humiditysensor","mandatory":true}');
+-- select _urbo_updatemetadata('madrid', 'entities', 'irrigation.humiditysensors', '{"table_name":"irrigation_humiditysensor","mandatory":true}');
 -- select _urbo_updatemetadata('madrid', 'categories', 'schools', '{"nodata":true}');
-
+-- create metadata
 -- select _urbo_createmetadata(NULL, 'variables', 'schools.institute.positionsss', '{"var_names":"Posición del instituto TEXT1", "mandatory": "false"}');
 -- select _urbo_createmetadata(NULL, 'entities', 'irrigation.humiditysensortest2', '{"table_name":"irrigation_humiditysensor","mandatory":true}');
 -- select _urbo_createmetadata('madrid', 'categories', 'irrigations', '{"config":{"carto":{"account":"cedus-admin"}},"nodata":false}');
-
+-- utils metadata
 -- select _urbo_checkmetadata_scopes('{"id_scopes_in":["torino","madrid"],"var_names":"Posición del instituto TEXT1", "mandatory": "false"}');
 -- select _urbo_clean_config('{"id_scopes":["torino","madrid"],"var_names":"Posición del instituto TEXT1", "mandatory": "false"}');
 -- select _urbo_updateusergraph('madrid', 'dumps.container.category');
