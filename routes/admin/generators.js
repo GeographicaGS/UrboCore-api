@@ -37,10 +37,18 @@ var YMLGenerator = require('../../protools/ymlgenerator');
 router.get('/configs/connector/:category/:scope',auth.publishedOrLogged,function(req, res, next) {
 
   var ymlGenerator = new YMLGenerator();
-  var ymlDoc = ymlGenerator.convertJSON2YML(ymlGenerator.config);
-  log.info(ymlDoc);
-  // res.download('../templates');
-  res.send("Connector Config Generator");
+  log.info(ymlGenerator.configPath);
+  var ymlDoc = ymlGenerator.createConfigFile();
+
+
+  // res.setHeader('Content-disposition', 'attachment; filename=connectorConfigYaml.csv');
+  // res.set('Content-Type', 'text/plain');
+  // res.set('Content-transfer-encoding', 'base64');
+  // res.send(new Buffer(ymlGenerator.configPath));
+
+  res.send('ymlDoc');
+
+
 });
 
 

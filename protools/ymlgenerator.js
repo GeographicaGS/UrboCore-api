@@ -20,42 +20,31 @@
 
 'use strict';
 
+
 var _ = require('underscore');
 var utils = require('../utils');
 var log = utils.log();
-var yaml = require('js-yaml');
+// var yaml = require('js-yaml');
 var fs = require('fs');
 var path = require('path');
-var ymal = require('json2yaml'), connectorConfig;
+// var ymal = require('json2yaml'), connectorConfig;
+var mergeYaml = require('merge-yaml-cli')
 
 class YMLGenerator {
 
   constructor() {
-    this.config = {};
-    try {
-      this.config = yaml.safeLoad(fs.readFileSync(path.resolve(__dirname, '../templates') + '/base.yml'), 'utf8');
-      log.info(this.config);
-    } catch (e) {
-      log.error(e);
-    }
+    this.configPath = 'configPath';
   }
 
-  convertJSON2YML(json) {
+  createConfigFile() {
 
-    // Get document, or throw exception on error
-    try {
-      var connectorConfig = ymal.stringify(this.config);
-      log.info(connectorConfig);
+    var connectorConfigFile  = mergeYaml.merge(['../base.yml', '../configurated.yml']);
+    log.info(connectorConfigFile);
 
-    } catch (e) {
-      log.error(e);
-    }
+    mergeYaml.on('files', ['../base.yml', '../configurated.yml']);
 
-    return connectorConfig;
-
-
+    return connectorConfigFile;
   }
-
 
 }
 
