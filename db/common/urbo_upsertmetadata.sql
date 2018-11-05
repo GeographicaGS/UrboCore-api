@@ -118,13 +118,10 @@ AS $$
       -- Check regex
       IF (_key_json ~* '^(.*?)\.(.*?)\.(.*?)$') THEN
         PERFORM _urbo_upsertmetadata('variables', _key_json::text, json_configs::jsonb->_key_json);
-        raise notice 'varrrr';
       ELSIF (_key_json ~* '^(.*?)\.(.*?)$') THEN
-        -- PERFORM _urbo_upsertmetadata('entities'::text, _key_json::text, json_configs::jsonb->_key_json);
-        raise notice 'entttt';
+        PERFORM _urbo_upsertmetadata('entities'::text, _key_json::text, json_configs::jsonb->_key_json);
       ELSE
-        -- PERFORM _urbo_upsertmetadata('categories'::text, _key_json::text, json_configs::jsonb->_key_json);
-        raise notice 'cattt';
+        PERFORM _urbo_upsertmetadata('categories'::text, _key_json::text, json_configs::jsonb->_key_json);
       END IF;
     END LOOP;
   END;
@@ -157,6 +154,7 @@ AS $$
       FOR _scope IN SELECT * FROM json_array_elements(_scopes::json)
       LOOP
       RAISE NOTICE '%', _scope;
+
         -- Update metadata or Create metadata
         EXECUTE format('SELECT count(*) FROM metadata.%1s_scopes WHERE %2s = ''%3s''', metadata_level, _metadata_levels->metadata_level, id_value) into _metadata_exists;
         IF _metadata_exists IS NOT NULL AND _metadata_exists = '1' THEN
@@ -164,13 +162,13 @@ AS $$
         ELSE
           PERFORM _urbo_createmetadata(_scope, metadata_level, id_value, json_config);
         END IF;
+
       END LOOP;
 
     ELSE
-        -- first upsert general categories,entities and variables
-        raise notice '%', format('SELECT count(*) FROM metadata.%I WHERE %2s = ''%3s''', metadata_level, _metadata_levels->metadata_level, id_value);
 
-        EXECUTE format('SELECT count(*) FROM metadata.%I WHERE %2s = ''%3s''', metadata_level, _metadata_levels->metadata_level, id_value) into _metadata_exists;
+        -- first upsert general categories,entities and variables
+        EXECUTE format('SELECT count(*) FROM metadata.%I WHERE ''%I'' = ''%3s''', metadata_level, _metadata_levels->metadata_level, id_value) into _metadata_exists;
         IF _metadata_exists IS NOT NULL AND _metadata_exists = '1' THEN
           PERFORM _urbo_updatemetadata(NULL, metadata_level, id_value, json_config);
         ELSE
@@ -181,7 +179,7 @@ AS $$
         FOR _scope IN SELECT * FROM json_array_elements(_scopes::json)
         LOOP
           -- Update metadata or Create metadata
-          EXECUTE format('SELECT count(*) FROM metadata.%1s_scopes WHERE %2s = ''%3s''', metadata_level, _metadata_levels->metadata_level, id_value) into _metadata_exists;
+          EXECUTE format('SELECT count(*) FROM metadata.%1s_scopes WHERE ''%I'' = ''%3s''', metadata_level, _metadata_levels->metadata_level, id_value) into _metadata_exists;
           IF _metadata_exists IS NOT NULL AND _metadata_exists = '1' THEN
             PERFORM _urbo_updatemetadata(_scope, metadata_level, id_value, json_config);
           ELSE
@@ -295,9 +293,11 @@ AS $$
   DECLARE
     _parent_id text;
     _parent_id_exists integer DEFAULT 0;
+    _metadata_levels json DEFAULT '{"categories":"id_category","entities":"id_entity","variables":"id_variable"}'::jsonb;
+    _general_metadata_exists integer DEFAULT 0;
 
   BEGIN
-    RAISE NOTICE 'a % must be created', metadata_level;
+    -- raise notice 'a new % will be created', _metadata_levels->metadata_level;
 
     -- first check if entity asociated exists
     IF metadata_level = 'variables' THEN
@@ -313,6 +313,8 @@ AS $$
 
     ELSE
       RAISE NOTICE 'category cannot be created. Please define a complete vertical instead! :)';
+      RETURN;
+
     END IF;
 
     IF _parent_id_exists THEN
@@ -399,13 +401,18 @@ $$ LANGUAGE plpgsql;
 
 
 
-select urbo_upsertmetadata('{"schools.institute.positionesss":{"var_name":"Posición del instituto"},"irrigation.humiditysensor":{"table_name":"irrigation_humiditysensor","mandatory":true},"dumps":{"config":{"carto":{"account":"cedus-admin"}},"nodata":false}}');
+-- select urbo_upsertmetadata('{"schools.institute.positionesss":{"var_name":"Posición del instituto"},"irrigation.humiditysensor":{"table_name":"irrigation_humiditysensor","mandatory":true},"dumps":{"config":{"carto":{"account":"cedus-admin"}},"nodata":false}}');
+
 -- select _urbo_upsertmetadata('variables', 'schools.institute.position', '{"id_scopes":["torino","madrid"],"var_names":"Posición del instituto TEXT1", "mandatory": "false"}');
+
 -- select _urbo_updatemetadata(NULL, 'variables', 'schools.institute.position', '{"var_name":"Posición del instituto TEXT2", "mandatory": "false"}');
--- select _urbo_updatemetadata('madrid', 'entities', 'irrigation.humiditysensor', '{"table_name":"irrigation_humiditysensor","mandatory":true}');
--- select _urbo_updatemetadata('madrid', 'categories', 'schools', '{"nodata":false}');
+select _urbo_updatemetadata('madrid', 'entities', 'irrigation.humiditysensors', '{"table_name":"irrigation_humiditysensor","mandatory":true}');
+-- select _urbo_updatemetadata('madrid', 'categories', 'schools', '{"nodata":true}');
+
 -- select _urbo_createmetadata(NULL, 'variables', 'schools.institute.positionsss', '{"var_names":"Posición del instituto TEXT1", "mandatory": "false"}');
--- select _urbo_createmetadata('madrid', 'entities', 'irrigation.humiditysensor', '{"table_name":"irrigation_humiditysensor","mandatory":true}');
+-- select _urbo_createmetadata(NULL, 'entities', 'irrigation.humiditysensortest2', '{"table_name":"irrigation_humiditysensor","mandatory":true}');
+-- select _urbo_createmetadata('madrid', 'categories', 'irrigations', '{"config":{"carto":{"account":"cedus-admin"}},"nodata":false}');
+
 -- select _urbo_checkmetadata_scopes('{"id_scopes_in":["torino","madrid"],"var_names":"Posición del instituto TEXT1", "mandatory": "false"}');
 -- select _urbo_clean_config('{"id_scopes":["torino","madrid"],"var_names":"Posición del instituto TEXT1", "mandatory": "false"}');
 -- select _urbo_updateusergraph('madrid', 'dumps.container.category');
