@@ -120,9 +120,9 @@ AS $$
       IF (_key_json ~* '^(.*?)\.(.*?)\.(.*?)$') THEN
         PERFORM _urbo_upsertmetadata('variables', _key_json, json_configs->_key_json);
       ELSIF (_key_json ~* '^(.*?)\.(.*?)$') THEN
-        -- PERFORM _urbo_upsertmetadata('entities'::text, _key_json::text, json_configs::jsonb->_key_json);
+        PERFORM _urbo_upsertmetadata('entities'::text, _key_json::text, json_configs::jsonb->_key_json);
       ELSE
-        -- PERFORM _urbo_upsertmetadata('categories'::text, _key_json::text, json_configs::jsonb->_key_json);
+        PERFORM _urbo_upsertmetadata('categories'::text, _key_json::text, json_configs::jsonb->_key_json);
       END IF;
     END LOOP;
   END;
@@ -186,7 +186,7 @@ AS $$
 
           EXECUTE format('SELECT count(*) FROM metadata.%1s_scopes WHERE ''%I'' = ''%3s''', metadata_level, _metadata_levels->metadata_level, id_value) into _metadata_exists;
           IF _metadata_exists IS NOT NULL AND _metadata_exists = '1' THEN
-            -- PERFORM _urbo_updatemetadata(_scope, metadata_level, id_value, json_config);
+            PERFORM _urbo_updatemetadata(_scope, metadata_level, id_value, json_config);
           ELSE
             PERFORM _urbo_createmetadata(_scope, metadata_level, id_value, json_config);
           END IF;
@@ -412,7 +412,7 @@ $$ LANGUAGE plpgsql;
 -- EXAMPLES:
 --
 -- Upsert variable
-select urbo_upsertmetadata('{"schools.institute.positions":{"var_name":"Posición del instituto (nueva)"}}');
+-- select urbo_upsertmetadata('{"schools.institute.positions":{"var_name":"Posición del instituto (nueva)"}}');
 -- Upsert entity
 -- select urbo_upsertmetadata('{"irrigation.humiditysensor":{"table_name":"irrigation_humiditysensor_new","mandatory":false}}');
 -- Upsert category
