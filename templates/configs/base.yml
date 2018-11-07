@@ -1,0 +1,61 @@
+# FIWARE-PGSQL/CartoDB CONNECTOR CONFIGURATION FILE
+
+
+baseURL:
+
+contextBrokerUrls:
+
+subservices:
+
+# Logging parameters.
+logging:
+  # Options: ALL | TRACE | DEBUG | INFO | WARN | ERROR | FATAL | OFF. Default: INFO.
+  level: DEBUG
+  # Options: console | file | dailyRotatingFile | sizeRotatingFile. Default: console.
+  output: console
+  # Configure the log file.
+  file:
+    # Default: `./logs`
+    dir: ./logs
+    # File size in MB for `sizeRotatingFile` log type. Default: 20 MB.
+    maxSize: 20
+    # Number of old files to keep for `sizeRotatingFile` log type. Default: 5.
+    oldFiles: 5
+    # Boolean. If true, it'll create a separate file for errors. Default: false.
+    separateError: true
+  # Configure the access log. If its level is inferior than the main level it won't be logged.
+  # Documentaiton: https://github.com/nomiddlename/log4js-node/wiki/Connect-Logger
+  access:
+    # Options: Same as the main level. Default: The one used in the main level.
+    level: INFO
+    # Optional. For using log4js default format: false.
+    format: :remote-addr - ":method :url HTTP/:http-version" :status :res[content-length] :response-time ":user-agent"
+    # Optional array: each element it's like a regex. Default: empty.
+    nolog:
+      - ^/subscriptions/transport_vehicle
+
+# CartoDB configuration parameters TOASK
+cartodb:
+  active: true
+  # Optional. Default to false. If you've an enterprise account at CartoDB you must set this param to true
+  enterprise: false
+
+# urbo-processing parameters
+processing: # Autogenerado
+  active: false
+  requestAttempts: 5
+  psqlJob: connectorPsql
+  cartoJob: connectorCarto
+  jobAttempts: 3
+  priority: critical
+
+# Configuration for recreating (delete and create) subscriptions.
+# Optional. Options: global|single|none. Default: none.
+# Note: When 'single' is set, each subscription can have a 'recreateSubscription' boolean attribute.
+recreateSubscriptions: global
+
+# It looks like that with last versions of Orion we can receive repeated
+# attributes in the `contextResponses`. Setting `manageRepeatedAttributes` to
+# `true` deals with that, using only the first appearance.
+# Default value: `false`.
+manageRepeatedAttributes: false

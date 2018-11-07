@@ -1,8 +1,0 @@
-
-# PostgreSQL configuration parameters
-pgsql:
-  host: XXX
-  user: XXX # Autogenerado
-  password: XXX # Autogenerado
-  database: XXX
-  port: XXX
