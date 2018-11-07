@@ -126,3 +126,13 @@ idm:
   url: http://idm.cedus.eu/
   response_type: code
   callback_url: http://localhost/auth/idm/login
+
+# urbo-processing parameters -- Added to use it at the wizard connector generator for cedus
+processing:
+  active: false
+  url: http://localhost:port
+  requestAttempts: 5
+  psqlJob: connectorPsql
+  cartoJob: connectorCarto
+  jobAttempts: 3
+  priority: critical
