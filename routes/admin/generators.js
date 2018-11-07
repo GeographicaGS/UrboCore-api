@@ -25,6 +25,7 @@ var express = require('express');
 var fs = require('fs');
 var router = express.Router();
 var path = require("path");
+var mime = require('mime');
 var utils = require('../../utils');
 var log = utils.log();
 
@@ -34,20 +35,23 @@ var YMLGenerator = require('../../protools/ymlgenerator');
 /*
 * Connector Config Generator
 */
-router.get('/configs/connector/:category/:scope',auth.publishedOrLogged,function(req, res, next) {
+router.get('/config/connector/:category/:scope',auth.protectSuperAdmin,function(req, res, next) {
 
+  // set variables
+  var category = req.params.category;
+  var scope = req.params.scope;
+
+  // create merged yaml
   var ymlGenerator = new YMLGenerator();
-  log.info(ymlGenerator.configPath);
-  var ymlDoc = ymlGenerator.createConfigFile();
+  var ymlDoc = ymlGenerator.createConfigFile(category, scope);
 
-
-  // res.setHeader('Content-disposition', 'attachment; filename=connectorConfigYaml.csv');
-  // res.set('Content-Type', 'text/plain');
-  // res.set('Content-transfer-encoding', 'base64');
-  // res.send(new Buffer(ymlGenerator.configPath));
-
-  res.send('ymlDoc');
-
+  // send response
+  var mimetype = mime.lookup(ymlDoc);
+  res.setHeader('Content-disposition', `attachment; filename=connector_${category}_${scope}_config.yml`);
+  res.setHeader('Content-type', mimetype);
+  res.setHeader('Content-transfer-encoding', 'base64');
+  res.send(ymlDoc);
+  res.end();
 
 });
 

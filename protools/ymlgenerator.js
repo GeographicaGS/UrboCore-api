@@ -20,30 +20,66 @@
 
 'use strict';
 
-
-var _ = require('underscore');
 var utils = require('../utils');
 var log = utils.log();
-// var yaml = require('js-yaml');
 var fs = require('fs');
 var path = require('path');
-// var ymal = require('json2yaml'), connectorConfig;
-var mergeYaml = require('merge-yaml-cli')
+var mergeYaml = require('merge-yaml');
+var jsYaml = require('js-yaml');
+var lodash = require('lodash');
 
 class YMLGenerator {
 
   constructor() {
-    this.configPath = 'configPath';
   }
 
-  createConfigFile() {
+  mergeYaml(yamlsArray) {
+    var mergedConfig;
+    yamlsArray.forEach(function (yaml) {
+      var parsedConfig = yaml;
+      if (!mergedConfig) {
+          mergedConfig = parsedConfig;
+      } else {
+          lodash.merge(mergedConfig, parsedConfig);
+      }
+    });
+    log.info(mergedConfig);
+    return mergedConfig;
+  };
 
-    var connectorConfigFile  = mergeYaml.merge(['../base.yml', '../configurated.yml']);
-    log.info(connectorConfigFile);
+  createConfigFile(category, scope) {
+    // define objects to merge
+    var apiConfig = jsYaml.safeLoad(fs.readFileSync('config.yml', 'utf8'));
+    var baseConfig = jsYaml.safeLoad(fs.readFileSync('templates/configs/base.yml', 'utf8'));
+    var userConfig = jsYaml.safeLoad(fs.readFileSync('templates/configs/user.yml', 'utf8'));
+    var autoConfig = jsYaml.safeLoad(fs.readFileSync('templates/configs/auto.yml', 'utf8'));
+    var serviceConfig = jsYaml.safeLoad(fs.readFileSync(`verticals/${category}/connector/config.yml`, 'utf8'));
 
-    mergeYaml.on('files', ['../base.yml', '../configurated.yml']);
+    // inject values from api config and params
+    autoConfig.pgsql = apiConfig.pgsql;
+    autoConfig.cartodb.apiKey = apiConfig.carto[0].api_key;
+    autoConfig.cartodb.user = apiConfig.carto[0].user;
+    autoConfig.processing.url = apiConfig.processing.url;
+    serviceConfig.logging.file.name = `${scope}-${category}-connector`;
+    serviceConfig.subscriptions.forEach(function(element, index) {
+      Object.keys(element).forEach( function(key){
+        if (key == 'schemaname') {
+          element[key] = scope;
+        }
+      });
+    });
 
-    return connectorConfigFile;
+    // merge yamls - The last files will take the highest precedence
+    var connectorConfigFile = this.mergeYaml(
+      [
+        baseConfig,
+        userConfig,
+        autoConfig,
+        serviceConfig
+      ]
+    )
+
+    return jsYaml.safeDump(connectorConfigFile);
   }
 
 }
