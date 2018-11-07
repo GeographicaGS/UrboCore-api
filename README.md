@@ -1,14 +1,19 @@
 # UrboCore API
 URBO's API. This project is the backend application of URBO solution for smart cities.
 
-Status **master** branch: [![Build Status](http://jenkins.geographica.gs/buildStatus/icon?job=urbocore-api/master)](https://jenkins.geographica.gs/job/urbocore-api/job/master/)
-
-Status **dev** branch: [![Build Status](http://jenkins.geographica.gs/buildStatus/icon?job=urbocore-api/dev)](https://jenkins.geographica.gs/job/urbocore-api/job/dev/)
+| Master | Dev |
+| ------ | --- |
+| [![Build Status](http://jenkins.geographica.gs/buildStatus/icon?job=urbocore-api/master)](https://jenkins.geographica.gs/job/urbocore-api/job/master/) | [![Build Status](http://jenkins.geographica.gs/buildStatus/icon?job=urbocore-api/dev)](https://jenkins.geographica.gs/job/urbocore-api/job/dev/) |
 
 ## Introduction
 This is the code repository for URBO Core API, the backend application for the URBO project.
 
 This repository provides the base code for the web API and needs to be complemented with pluggable verticals.
+
+## Project Architecture
+The following diagram represents the architecture of the project.
+
+![Components of urbo](docs/urbo_components_gray.png)
 
 
 ## Requirements
