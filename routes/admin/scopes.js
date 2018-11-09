@@ -27,6 +27,7 @@ var util = require('util');
 var cons = require('../../cons.js');
 var auth = require('../../auth.js');
 var ScopeModel = require('../../models/scopemodel');
+var DBUsersModel = require('../../models/dbusersmodel');
 var categories = require('./categories'),
   entities = require('./entities'),
   variables = require('./variables'),
@@ -85,15 +86,14 @@ var addScopeValidator = function(req, res, next){
   req.checkBody('multi', 'invalid or non-existent parent_id').optional().validMulti(req.body.parent_id, res.user);
 
   return next();
-}
+};
 
+/* Create Scope */
 router.post('/',
   addScopeValidator,
   responseValidator,
   checkDeMA,
   function(req, res, next){
-
-
 
     // Actual insertion
     var model = new ScopeModel();
@@ -105,11 +105,24 @@ router.post('/',
         if (req.withDeMA) {
           let dema = new OrionDeMA(config.getDeMA(res.locals.dema_access_token));
           dema.updateScopeStatus(data.id, 'created', res.user)
-          .then( d => {
+          .then( function(){
             return res.status(201).json(data);
           })
         }
-        else { return res.status(201).json(data);  }
+
+        let dbusersmodel = new DBUsersModel();
+        dbusersmodel.createScopeDBUser(data.id)
+        .then(function(opts){
+          return dbusersmodel.saveScopeUserPassword(opts.scope, opts.user_password)
+        })
+        .then( function(d){
+          return res.status(201).json(opts);
+        })
+        .catch(function(errors) {
+          console.error(errors);
+          return res.status(400).json(errors);
+        });
+
 
       }
     });
@@ -125,7 +138,7 @@ var updateScopeValidator = function(req, res, next){
   req.checkBody('timezone', 'invalid timezone').optional().isValidTimezone();
 
   return next();
-}
+};
 
 router.put('/:scope',
   checkScope,
