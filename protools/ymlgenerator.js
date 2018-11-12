@@ -21,6 +21,7 @@
 'use strict';
 
 var utils = require('../utils');
+var DBUsersModel = require('../models/dbusersmodel');
 var log = utils.log();
 var fs = require('fs');
 var path = require('path');
@@ -30,8 +31,10 @@ var lodash = require('lodash');
 
 class YMLGenerator {
 
+
   constructor() {
   }
+
 
   mergeYaml(yamlsArray) {
     var mergedConfig;
@@ -47,7 +50,15 @@ class YMLGenerator {
     return mergedConfig;
   };
 
-  createConfigFile(category, scope) {
+
+  getScopeUserPassword(id_scope) {
+    let dbusersmodel = new DBUsersModel();
+    return dbusersmodel.getScopeUserPassword(id_scope);
+  }
+
+
+  createConfigFile(category, id_scope, scope_db_user_password) {
+
     // define objects to merge
     var apiConfig = jsYaml.safeLoad(fs.readFileSync('config.yml', 'utf8'));
     var baseConfig = jsYaml.safeLoad(fs.readFileSync('templates/configs/base.yml', 'utf8'));
@@ -55,16 +66,22 @@ class YMLGenerator {
     var autoConfig = jsYaml.safeLoad(fs.readFileSync('templates/configs/auto.yml', 'utf8'));
     var serviceConfig = jsYaml.safeLoad(fs.readFileSync(`verticals/${category}/connector/config.yml`, 'utf8'));
 
-    // inject values from api config and params
+    // inject options
     autoConfig.pgsql = apiConfig.pgsql;
+    autoConfig.pgsql.user = id_scope;
+    autoConfig.pgsql.password = scope_db_user_password;
     autoConfig.cartodb.apiKey = apiConfig.carto[0].api_key;
     autoConfig.cartodb.user = apiConfig.carto[0].user;
     autoConfig.processing.url = apiConfig.processing.url;
-    serviceConfig.logging.file.name = `${scope}-${category}-connector`;
+    if (apiConfig.processing.auth.user) {
+      autoConfig.processing.auth.user = apiConfig.processing.auth.user;
+      autoConfig.processing.auth.password = apiConfig.processing.auth.password;
+    }
+    serviceConfig.logging.file.name = `${id_scope}-${category}-connector`;
     serviceConfig.subscriptions.forEach(function(element, index) {
       Object.keys(element).forEach( function(key){
         if (key == 'schemaname') {
-          element[key] = scope;
+          element[key] = id_scope;
         }
       });
     });
