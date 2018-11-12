@@ -17,3 +17,6 @@ cartodb:
 # urbo-processing parameters
 processing: # Autogenerado
   url: http://localhost:AAAAAA
+  auth:
+    user: AAAAAA
+    password: AAAAAA

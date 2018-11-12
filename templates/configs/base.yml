@@ -48,6 +48,10 @@ processing: # Autogenerado
   cartoJob: connectorCarto
   jobAttempts: 3
   priority: critical
+  auth:
+    user: urbo_connector
+    password: urbo_connector_password
+
 
 # Configuration for recreating (delete and create) subscriptions.
 # Optional. Options: global|single|none. Default: none.
