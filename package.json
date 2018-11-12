@@ -39,7 +39,6 @@
     "ldapauth-fork": "^3.0.0",
     "log4js": "^0.6.32",
     "memory-cache": "0.1.6",
-    "merge-yaml-cli": "1.1.2",
     "moment": "^2.13.0",
     "moment-timezone": "^0.5.5",
     "node-slug": "0.0.2",

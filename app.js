@@ -122,7 +122,6 @@ app.use('/notifier', auth.checkNotifierToken, notifier);
 app.use('/admin', auth.logged, auth.protectSuperAdmin, admin);
 
 // Wizard Generators
-app.use('/generators', auth.logged, generators);
 app.use('/generators/configs/connector/:category/:scope', auth.logged, generators);
 
 // catch 404 and forward to error handler
