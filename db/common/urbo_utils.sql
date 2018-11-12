@@ -163,12 +163,12 @@ DECLARE
 BEGIN
 
   EXECUTE format('
-    CREATE ROLE %I WITH LOGIN PASSWORD %L;
-    GRANT CONNECT ON DATABASE urbo TO %I;
-    GRANT USAGE ON SCHEMA %I TO %I;
-    GRANT SELECT ON ALL TABLES IN SCHEMA %I TO %I;
-    GRANT INSERT ON ALL TABLES IN SCHEMA %I TO %I;
-				 ', scope_user, user_password, scope_user, id_scope, scope_user, id_scope, scope_user, id_scope, scope_user);
+    CREATE ROLE %1$I WITH LOGIN PASSWORD %2$L;
+    GRANT CONNECT ON DATABASE urbo TO %1$I;
+    GRANT USAGE ON SCHEMA %3$I TO %1$I;
+    GRANT SELECT ON ALL TABLES IN SCHEMA %3$I TO %1$I;
+    GRANT INSERT ON ALL TABLES IN SCHEMA %3$I TO %1$I;
+				 ', scope_user, user_password, id_scope);
 
 END;
 $$ LANGUAGE plpgsql;
@@ -181,10 +181,10 @@ DECLARE
 BEGIN
 
   EXECUTE format('
-    REVOKE ALL PRIVILEGES ON DATABASE urbo FROM %I;
-    REVOKE ALL PRIVILEGES ON SCHEMA %I FROM %I;
-    DROP ROLE %I;
-				 ', scope_user, id_scope, scope_user, scope_user);
+    REVOKE ALL PRIVILEGES ON DATABASE urbo FROM %1$I;
+    REVOKE ALL PRIVILEGES ON SCHEMA %2$I FROM %1$I;
+    DROP ROLE %1$I;
+				 ', scope_user, id_scope);
 
 END;
 $$ LANGUAGE plpgsql;
