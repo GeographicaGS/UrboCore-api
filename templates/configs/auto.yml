@@ -1,0 +1,22 @@
+# FIWARE-PGSQL/CartoDB CONNECTOR CONFIGURATION FILE
+
+
+# PostgreSQL configuration parameters
+pgsql:
+  host: AAAAAA
+  user: AAAAAA # Autogenerado
+  password: AAAAAA # Autogenerado
+  database: AAAAAA
+  port: AAAAAA
+
+# CartoDB configuration parameters TOASK
+cartodb:
+  apiKey: AAAAAA
+  user: AAAAAA
+
+# urbo-processing parameters
+processing: # Autogenerado
+  url: http://localhost:AAAAAA
+  auth:
+    user: AAAAAA
+    password: AAAAAA

@@ -49,3 +49,6 @@ docker-compose.*.yml
 
 # IDE/Text editors
 .vscode
+
+# Node
+package-lock.json

@@ -1,0 +1,25 @@
+# FIWARE-PGSQL/CartoDB CONNECTOR CONFIGURATION FILE
+# Autogeneración : opciones - metadata - fichero base
+
+
+# BASE URL
+baseURL: <protocol://url:port>
+
+# Orion Context Broker API URLs
+contextBrokerUrls:
+  portAuthtk: <token>
+  portCtxApi: <port>
+  urlCtxBrBase: <protocol://url>
+  urlCtxAuthBase: <protocol://url>
+
+# Fiware subservices catalog.
+subservices:
+  - id:
+    # Fiware service name
+    service: <service_name>
+    # Fiware subservice name (slash must be added)
+    subservice: </subservice_name>
+    # Credentiales
+    auth:
+      user: <user>
+      password: <pass>
