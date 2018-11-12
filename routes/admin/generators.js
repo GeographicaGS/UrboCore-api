@@ -40,19 +40,28 @@ router.get('/config/connector/:category/:scope',auth.protectSuperAdmin,function(
 
   // set variables
   var category = req.params.category;
-  var scope = req.params.scope;
+  var id_scope = req.params.scope;
 
   // create merged yaml
   var ymlGenerator = new YMLGenerator();
-  var ymlDoc = ymlGenerator.createConfigFile(category, scope);
 
-  // send response
-  var mimetype = mime.lookup(ymlDoc);
-  res.setHeader('Content-disposition', `attachment; filename=connector_${category}_${scope}_config.yml`);
-  res.setHeader('Content-type', mimetype);
-  res.setHeader('Content-transfer-encoding', 'base64');
-  res.send(ymlDoc);
-  res.end();
+  ymlGenerator.getScopeUserPassword(id_scope)
+  .then(
+    dbuser_password => {
+
+      log.info(dbuser_password);
+      var ymlDoc = ymlGenerator.createConfigFile(category, id_scope, dbuser_password);
+
+      // send response
+      var mimetype = mime.lookup(ymlDoc);
+      res.setHeader('Content-disposition', `attachment; filename=connector_${category}_${id_scope}_config.yml`);
+      res.setHeader('Content-type', mimetype);
+      res.setHeader('Content-transfer-encoding', 'base64');
+      res.send(ymlDoc);
+      res.end();
+
+    }
+  )
 
 });
 
