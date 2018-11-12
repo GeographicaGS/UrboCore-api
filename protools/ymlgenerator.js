@@ -46,7 +46,6 @@ class YMLGenerator {
           lodash.merge(mergedConfig, parsedConfig);
       }
     });
-    log.info(mergedConfig);
     return mergedConfig;
   };
 
