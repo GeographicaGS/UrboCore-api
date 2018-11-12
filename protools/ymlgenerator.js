@@ -41,13 +41,13 @@ class YMLGenerator {
     yamlsArray.forEach(function (yaml) {
       var parsedConfig = yaml;
       if (!mergedConfig) {
-          mergedConfig = parsedConfig;
+        mergedConfig = parsedConfig;
       } else {
-          lodash.merge(mergedConfig, parsedConfig);
+        lodash.merge(mergedConfig, parsedConfig);
       }
     });
     return mergedConfig;
-  };
+  }
 
 
   getScopeUserPassword(id_scope) {
@@ -78,8 +78,8 @@ class YMLGenerator {
     }
     serviceConfig.logging.file.name = `${id_scope}-${category}-connector`;
     serviceConfig.subscriptions.forEach(function(element, index) {
-      Object.keys(element).forEach( function(key){
-        if (key == 'schemaname') {
+      Object.keys(element).forEach( function(key) {
+        if (key === 'schemaname') {
           element[key] = id_scope;
         }
       });
