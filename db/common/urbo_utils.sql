@@ -154,3 +154,37 @@ BEGIN
   end if;
 END;
 $$ LANGUAGE plpgsql;
+
+
+DROP FUNCTION IF EXISTS create_scope_dbuser(text, text);
+CREATE OR REPLACE FUNCTION create_scope_dbuser(id_scope text, user_password text) RETURNS void AS $$
+DECLARE
+  scope_user text := format('%I_user', id_scope);
+BEGIN
+
+  EXECUTE format('
+    CREATE ROLE %I WITH LOGIN PASSWORD %L;
+    GRANT CONNECT ON DATABASE urbo TO %I;
+    GRANT USAGE ON SCHEMA %I TO %I;
+    GRANT SELECT ON ALL TABLES IN SCHEMA %I TO %I;
+    GRANT INSERT ON ALL TABLES IN SCHEMA %I TO %I;
+				 ', scope_user, user_password, scope_user, id_scope, scope_user, id_scope, scope_user, id_scope, scope_user);
+
+END;
+$$ LANGUAGE plpgsql;
+
+
+DROP FUNCTION IF EXISTS delete_scope_dbuser(text, text);
+CREATE OR REPLACE FUNCTION delete_scope_dbuser(id_scope text) RETURNS void AS $$
+DECLARE
+  scope_user text := format('%I_user', id_scope);
+BEGIN
+
+  EXECUTE format('
+    REVOKE ALL PRIVILEGES ON DATABASE urbo FROM %I;
+    REVOKE ALL PRIVILEGES ON SCHEMA %I FROM %I;
+    DROP ROLE %I;
+				 ', scope_user, id_scope, scope_user, scope_user);
+
+END;
+$$ LANGUAGE plpgsql;
