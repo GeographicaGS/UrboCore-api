@@ -69,7 +69,7 @@ class DBUsersModel extends PGSQLModel {
       id_scope
     ];
 
-    var sql = `UPDATE metadata.scopes SET user_scope_password = $1 where id_scope = $2`;
+    var sql = 'UPDATE metadata.scopes SET user_scope_password = $1 where id_scope = $2';
     return this.promise_query(sql, bindings)
     .then(function(d) {
       var opts = {'scope':id_scope, 'user_password': user_password};
@@ -84,7 +84,7 @@ class DBUsersModel extends PGSQLModel {
       id_scope
     ];
 
-    var sql = `SELECT user_scope_password FROM metadata.scopes where id_scope = $1 LIMIT 1`;
+    var sql = 'SELECT user_scope_password FROM metadata.scopes where id_scope = $1 LIMIT 1';
 
     return this.promise_query(sql, bindings)
     .then(function(d) {
