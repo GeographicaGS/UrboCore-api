@@ -49,7 +49,6 @@ router.get('/config/connector/:category/:scope',auth.protectSuperAdmin,function(
   .then(
     dbuser_password => {
 
-      log.info(dbuser_password);
       var ymlDoc = ymlGenerator.createConfigFile(category, id_scope, dbuser_password);
 
       // send response
