@@ -33,6 +33,7 @@ pgsql:
   password: password
   database: urbo
   port: 5432
+  createScopeUser: false
 
 redis:
   use_cache: true
