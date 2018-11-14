@@ -31,7 +31,8 @@ var DBUsersModel = require('../../models/dbusersmodel');
 var categories = require('./categories'),
   entities = require('./entities'),
   variables = require('./variables'),
-  permissions = require('./permissions');
+  permissions = require('./permissions'),
+  generators = require('./generators');
 var OrionDeMA = require('../../orioncb/oriondema');
 var checkDeMA = require('../../middlewares/dema');
 var config = require('../../config');
@@ -47,6 +48,7 @@ router.use('/:scope/categories', checkScope, checkDeMA, categories);
 router.use('/:scope/entities', checkScope, entities);
 router.use('/:scope/variables', checkScope, variables);
 router.use('/:scope/permissions', checkScope, permissions);
+router.use('/:scope/generators', checkScope, generators);
 
 
 /* Scope list */
@@ -59,7 +61,6 @@ router.get('/', function(req, res, next) {
       }
   });
 });
-
 
 router.get('/:scope', checkScope, function(req, res, next) {
   new ScopeModel().getScopeForAdmin(req.params.scope, res.user, function(err, data) {

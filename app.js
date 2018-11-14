@@ -121,9 +121,6 @@ app.use('/notifier', auth.checkNotifierToken, notifier);
 // Admin API
 app.use('/admin', auth.logged, auth.protectSuperAdmin, admin);
 
-// Wizard Generators
-app.use('/generators/configs/connector/:category/:scope', auth.logged, generators);
-
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
   var err = new Error('Not Found');
