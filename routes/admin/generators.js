@@ -20,23 +20,25 @@
 
 'use strict';
 
-var auth = require('../../auth.js');
 var express = require('express');
+var auth = require('../../auth.js');
+var _ = require('underscore');
 var fs = require('fs');
-var router = express.Router();
+var router = express.Router({mergeParams: true});
+var ScopeModel = require('../../models/scopemodel');
+var UsersModel = require('../../models/usersmodel');
 var path = require("path");
 var mime = require('mime');
-var utils = require('../../utils');
-var log = utils.log();
-
-
+var utils = require('../../utils.js');
+var util = require('util');
 var YMLGenerator = require('../../protools/ymlgenerator');
+var log = utils.log();
 
 
 /*
 * Connector Config Generator
 */
-router.get('/config/connector/:category/:scope',auth.protectSuperAdmin,function(req, res, next) {
+router.get('/config/connector/:category',auth.protectSuperAdmin,function(req, res, next) {
 
   // set variables
   var category = req.params.category;

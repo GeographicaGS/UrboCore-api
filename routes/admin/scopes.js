@@ -31,7 +31,8 @@ var DBUsersModel = require('../../models/dbusersmodel');
 var categories = require('./categories'),
   entities = require('./entities'),
   variables = require('./variables'),
-  permissions = require('./permissions');
+  permissions = require('./permissions'),
+  generators = require('./generators');
 var OrionDeMA = require('../../orioncb/oriondema');
 var checkDeMA = require('../../middlewares/dema');
 var config = require('../../config');
@@ -47,6 +48,7 @@ router.use('/:scope/categories', checkScope, checkDeMA, categories);
 router.use('/:scope/entities', checkScope, entities);
 router.use('/:scope/variables', checkScope, variables);
 router.use('/:scope/permissions', checkScope, permissions);
+router.use('/:scope/generators', checkScope, generators);
 
 
 /* Scope list */
@@ -59,7 +61,6 @@ router.get('/', function(req, res, next) {
       }
   });
 });
-
 
 router.get('/:scope', checkScope, function(req, res, next) {
   new ScopeModel().getScopeForAdmin(req.params.scope, res.user, function(err, data) {
@@ -102,27 +103,44 @@ router.post('/',
         return next(err);
       }
       else {
-        if (req.withDeMA) {
-          let dema = new OrionDeMA(config.getDeMA(res.locals.dema_access_token));
-          dema.updateScopeStatus(data.id, 'created', res.user)
-          .then( function(){
-            return res.status(201).json(data);
+        if ( config.getData().pgsql.createScopeUser === true ) {
+
+          let dbusersmodel = new DBUsersModel();
+          dbusersmodel.createScopeDBUser(data.id)
+          .then(function(opts){
+            return dbusersmodel.saveScopeUserPassword(opts.scope, opts.user_password)
           })
+          .then( function(d){
+
+            if (req.withDeMA) {
+              let dema = new OrionDeMA(config.getDeMA(res.locals.dema_access_token));
+              dema.updateScopeStatus(data.id, 'created', res.user)
+              .then( function(d){
+                return res.status(201).json(d);
+              })
+            } else {
+              return res.status(201).json(d);
+            }
+
+          })
+          .catch(function(errors) {
+            console.error(errors);
+            return res.status(400).json(errors);
+          });
+
+        } else {
+
+          if (req.withDeMA) {
+            let dema = new OrionDeMA(config.getDeMA(res.locals.dema_access_token));
+            dema.updateScopeStatus(data.id, 'created', res.user)
+            .then( function(d){
+              return res.status(201).json(d);
+            })
+          } else {
+            return res.status(201).json(d);
+          }
+
         }
-
-        let dbusersmodel = new DBUsersModel();
-        dbusersmodel.createScopeDBUser(data.id)
-        .then(function(opts){
-          return dbusersmodel.saveScopeUserPassword(opts.scope, opts.user_password)
-        })
-        .then( function(d){
-          return res.status(201).json(opts);
-        })
-        .catch(function(errors) {
-          console.error(errors);
-          return res.status(400).json(errors);
-        });
-
 
       }
     });
@@ -180,6 +198,29 @@ router.delete('/:scope',
     }
     else {
       if(status==='ok'){
+
+        if ( config.getData().pgsql.createScopeUser === true ) {
+
+          let dbusersmodel = new DBUsersModel();
+          dbusersmodel.deleteScopeDBUser(req.params.scope)
+          .then( function(da){
+
+            if (req.withDeMA) {
+              var dema = new OrionDeMA(config.getDeMA(res.locals.dema_access_token));
+              dema.deleteScope(req.params.scope)
+              .then( d => {
+                return res.json({status: status});
+              })
+            }
+            else { return res.json({status: status}); }
+
+          })
+          .catch(function(errors) {
+            console.error(errors);
+            return res.status(400).json(errors);
+          });
+        } else {
+
           if (req.withDeMA) {
             var dema = new OrionDeMA(config.getDeMA(res.locals.dema_access_token));
             dema.deleteScope(req.params.scope)
@@ -188,6 +229,8 @@ router.delete('/:scope',
             })
           }
           else { return res.json({status: status}); }
+
+        }
       }
       else{
         res.sendStatus(404);
