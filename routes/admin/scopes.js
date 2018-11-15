@@ -134,10 +134,10 @@ router.post('/',
             let dema = new OrionDeMA(config.getDeMA(res.locals.dema_access_token));
             dema.updateScopeStatus(data.id, 'created', res.user)
             .then( function(d){
-              return res.status(201).json(d);
+              return res.status(201).json(data);
             })
           } else {
-            return res.status(201).json(d);
+            return res.status(201).json(data);
           }
 
         }
