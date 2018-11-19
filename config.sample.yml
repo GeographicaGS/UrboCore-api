@@ -46,7 +46,7 @@ redis:
 
 generators:
   # connector yml generator
-  ymlConnectorGenerator: false
+  createUserOnVerticalCreation: false
 
 ldap:
   url: ldap://x.x.x.x:x

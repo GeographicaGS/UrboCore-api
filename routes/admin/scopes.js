@@ -103,7 +103,7 @@ router.post('/',
         return next(err);
       }
       else {
-        if ( config.getData().generators.ymlConnectorGenerator === true ) {
+        if ( config.getData().generators.createUserOnVerticalCreation === true ) {
 
           let dbusersmodel = new DBUsersModel();
           dbusersmodel.createScopeDBUser(data.id)
@@ -199,7 +199,7 @@ router.delete('/:scope',
     else {
       if(status==='ok'){
 
-        if ( config.getData().generators.ymlConnectorGenerator === true ) {
+        if ( config.getData().generators.createUserOnVerticalCreation === true ) {
 
           let dbusersmodel = new DBUsersModel();
           dbusersmodel.deleteScopeDBUser(req.params.scope)
