@@ -51,3 +51,6 @@
 \ir common/ddl/urbo_categories_ddl.sql
 -- \ir common/ddl/urbo_createtables_frames_scope.sql
 -- \ir common/ddl/urbo_droptables_fromcategory.sql  -- Helper function for development
+
+-- Metadata
+\ir common/urbo_upsertmetadata.sql
