@@ -33,7 +33,6 @@ pgsql:
   password: password
   database: urbo
   port: 5432
-  createScopeUser: false
 
 redis:
   use_cache: true
@@ -43,6 +42,11 @@ redis:
   # Not necessary in new deployments
   # password: password
   ttl: 15  # In minutes
+
+
+generators:
+  # connector yml generator
+  createUserOnVerticalCreation: false
 
 ldap:
   url: ldap://x.x.x.x:x

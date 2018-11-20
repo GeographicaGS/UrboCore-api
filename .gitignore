@@ -52,3 +52,6 @@ docker-compose.*.yml
 
 # Node
 package-lock.json
+
+# postman collections
+_postman

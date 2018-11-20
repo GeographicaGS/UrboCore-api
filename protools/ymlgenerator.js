@@ -22,10 +22,7 @@
 
 var utils = require('../utils');
 var DBUsersModel = require('../models/dbusersmodel');
-var log = utils.log();
 var fs = require('fs');
-var path = require('path');
-var mergeYaml = require('merge-yaml');
 var jsYaml = require('js-yaml');
 var lodash = require('lodash');
 
