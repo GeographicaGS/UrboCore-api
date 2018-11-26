@@ -27,10 +27,12 @@ var util = require('util');
 var cons = require('../../cons.js');
 var auth = require('../../auth.js');
 var ScopeModel = require('../../models/scopemodel');
+var DBUsersModel = require('../../models/dbusersmodel');
 var categories = require('./categories'),
   entities = require('./entities'),
   variables = require('./variables'),
-  permissions = require('./permissions');
+  permissions = require('./permissions'),
+  generators = require('./generators');
 var OrionDeMA = require('../../orioncb/oriondema');
 var checkDeMA = require('../../middlewares/dema');
 var config = require('../../config');
@@ -46,6 +48,7 @@ router.use('/:scope/categories', checkScope, checkDeMA, categories);
 router.use('/:scope/entities', checkScope, entities);
 router.use('/:scope/variables', checkScope, variables);
 router.use('/:scope/permissions', checkScope, permissions);
+router.use('/:scope/generators', checkScope, generators);
 
 
 /* Scope list */
@@ -58,7 +61,6 @@ router.get('/', function(req, res, next) {
       }
   });
 });
-
 
 router.get('/:scope', checkScope, function(req, res, next) {
   new ScopeModel().getScopeForAdmin(req.params.scope, res.user, function(err, data) {
@@ -85,15 +87,14 @@ var addScopeValidator = function(req, res, next){
   req.checkBody('multi', 'invalid or non-existent parent_id').optional().validMulti(req.body.parent_id, res.user);
 
   return next();
-}
+};
 
+/* Create Scope */
 router.post('/',
   addScopeValidator,
   responseValidator,
   checkDeMA,
   function(req, res, next){
-
-
 
     // Actual insertion
     var model = new ScopeModel();
@@ -102,14 +103,44 @@ router.post('/',
         return next(err);
       }
       else {
-        if (req.withDeMA) {
-          let dema = new OrionDeMA(config.getDeMA(res.locals.dema_access_token));
-          dema.updateScopeStatus(data.id, 'created', res.user)
-          .then( d => {
-            return res.status(201).json(data);
+        if ( config.getData().generators.createUserOnVerticalCreation === true ) {
+
+          let dbusersmodel = new DBUsersModel();
+          dbusersmodel.createScopeDBUser(data.id)
+          .then(function(opts){
+            return dbusersmodel.saveScopeUserPassword(opts.scope, opts.user_password)
           })
+          .then( function(d){
+
+            if (req.withDeMA) {
+              let dema = new OrionDeMA(config.getDeMA(res.locals.dema_access_token));
+              dema.updateScopeStatus(data.id, 'created', res.user)
+              .then( function(d){
+                return res.status(201).json(data);
+              })
+            } else {
+              return res.status(201).json(data);
+            }
+
+          })
+          .catch(function(errors) {
+            console.error(errors);
+            return res.status(400).json(errors);
+          });
+
+        } else {
+
+          if (req.withDeMA) {
+            let dema = new OrionDeMA(config.getDeMA(res.locals.dema_access_token));
+            dema.updateScopeStatus(data.id, 'created', res.user)
+            .then( function(d){
+              return res.status(201).json(data);
+            })
+          } else {
+            return res.status(201).json(data);
+          }
+
         }
-        else { return res.status(201).json(data);  }
 
       }
     });
@@ -125,7 +156,7 @@ var updateScopeValidator = function(req, res, next){
   req.checkBody('timezone', 'invalid timezone').optional().isValidTimezone();
 
   return next();
-}
+};
 
 router.put('/:scope',
   checkScope,
@@ -167,6 +198,29 @@ router.delete('/:scope',
     }
     else {
       if(status==='ok'){
+
+        if ( config.getData().generators.createUserOnVerticalCreation === true ) {
+
+          let dbusersmodel = new DBUsersModel();
+          dbusersmodel.deleteScopeDBUser(req.params.scope)
+          .then( function(da){
+
+            if (req.withDeMA) {
+              var dema = new OrionDeMA(config.getDeMA(res.locals.dema_access_token));
+              dema.deleteScope(req.params.scope)
+              .then( d => {
+                return res.json({status: status});
+              })
+            }
+            else { return res.json({status: status}); }
+
+          })
+          .catch(function(errors) {
+            console.error(errors);
+            return res.status(400).json(errors);
+          });
+        } else {
+
           if (req.withDeMA) {
             var dema = new OrionDeMA(config.getDeMA(res.locals.dema_access_token));
             dema.deleteScope(req.params.scope)
@@ -175,6 +229,8 @@ router.delete('/:scope',
             })
           }
           else { return res.json({status: status}); }
+
+        }
       }
       else{
         res.sendStatus(404);

@@ -1,20 +1,20 @@
 // Copyright 2017 Telefónica Digital España S.L.
-// 
+//
 // This file is part of UrboCore API.
-// 
+//
 // UrboCore API is free software: you can redistribute it and/or
 // modify it under the terms of the GNU Affero General Public License as
 // published by the Free Software Foundation, either version 3 of the
 // License, or (at your option) any later version.
-// 
+//
 // UrboCore API is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero
 // General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU Affero General Public License
 // along with UrboCore API. If not, see http://www.gnu.org/licenses/.
-// 
+//
 // For those usages not covered by this license please contact with
 // iot_support at tid dot es
 
@@ -34,10 +34,12 @@ function UsersModel(cfg) {
 
 util.inherits(UsersModel, PGSQLModel);
 
+
 UsersModel.prototype.getUsers = function(cb) {
   var sql = 'SELECT users_id as id,name, surname,email,superadmin,ldap, (select array_agg(name) from users_graph  where parent=1 AND users_id=ANY(read_users)) as scopes from users';
   this.query(sql,null,this.cbResults(cb));
 }
+
 
 UsersModel.prototype.getUser = function(id,cb) {
   var sql = ['SELECT users_id as id,name, surname,email,superadmin,ldap,',
@@ -45,6 +47,7 @@ UsersModel.prototype.getUser = function(id,cb) {
     'FROM users where users_id=$1'];
   this.query(sql.join(' '),[id],this.cbRow(cb));
 }
+
 
 UsersModel.prototype.deleteUser = function(id, cb) {
   var _this = this;
@@ -59,6 +62,7 @@ UsersModel.prototype.deleteUser = function(id, cb) {
   });
 };
 
+
 UsersModel.prototype.checkUserEmail = function(email,cb) {
   var sql = 'select exists(select users_id from users where email=$1) as t';
   this.query(sql,[email],function(err,data) {
@@ -69,6 +73,7 @@ UsersModel.prototype.checkUserEmail = function(email,cb) {
   });
 }
 
+
 UsersModel.prototype.checkOtherUsersEmail = function(id,email,cb) {
   var sql = 'select exists(select users_id from users where email=$1 AND users_id!=$2) as t';
   this.query(sql,[email,id],function(err,data) {
@@ -78,6 +83,7 @@ UsersModel.prototype.checkOtherUsersEmail = function(id,email,cb) {
       cb(null,data.rows[0].t);
   });
 }
+
 
 UsersModel.prototype.saveUser = function(user,cb) {
   var _this = this;
@@ -116,6 +122,7 @@ UsersModel.prototype.saveUser = function(user,cb) {
   });
 }
 
+
 UsersModel.prototype.editUser = function(id,user,editpermissions,cb) {
   var _this = this;
 
@@ -147,6 +154,7 @@ UsersModel.prototype.editUser = function(id,user,editpermissions,cb) {
   });
 }
 
+
 UsersModel.prototype.findSuperUsers = function(cb) {
   this.query('SELECT users_id FROM users WHERE superadmin=true', null, cb);
 }
@@ -157,10 +165,12 @@ UsersModel.prototype.editPassword = function(id,password,cb) {
   this.query(sql,[password,id],cb);
 }
 
+
 UsersModel.prototype.editHashedPassword = function(id,password,cb) {
   var sql = 'UPDATE users SET password=$1 WHERE users_id=$2';
   this.query(sql,[password,id],cb);
 }
+
 
 UsersModel.prototype.checkOldPassword = function(id,password,cb) {
   var sql = 'select password=md5($1) as t from users WHERE users_id=$2';
@@ -170,10 +180,12 @@ UsersModel.prototype.checkOldPassword = function(id,password,cb) {
   });
 }
 
+
 UsersModel.prototype.getUsersInList = function(users_ids,cb) {
   var sql = util.format('SELECT users_id::int as id,name, surname,superadmin from users WHERE users_id in (%s)',users_ids.join(','));
   this.query(sql,null,this.cbResults(cb));
 }
+
 
 UsersModel.prototype.users_graph_operation = function(scope, id_resource, user_id, permission, operation, cb) {
   auth.findByNamesInScope(scope, [id_resource], (function(err, nodes) {
@@ -192,5 +204,6 @@ UsersModel.prototype.users_graph_operation = function(scope, id_resource, user_i
     return cb(null, null);
   }).bind(this));
 }
+
 
 module.exports = UsersModel;

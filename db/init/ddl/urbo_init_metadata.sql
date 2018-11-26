@@ -157,6 +157,7 @@ CREATE TABLE metadata.scopes (
     parent_id_scope character varying(255) DEFAULT NULL::character varying,
     status smallint DEFAULT 0,
     timezone character varying(255),
+    user_scope_password character varying(255),
     config jsonb
 );
 

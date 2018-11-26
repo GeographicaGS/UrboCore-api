@@ -45,6 +45,7 @@ var auth = require('./auth');
 var config = require('./config');
 var utils = require('./utils');
 var widgets = require('./auth_graph/widgets');
+var generators = require('./routes/admin/generators');
 var app = express();
 var cfgData = config.getData();
 var log = utils.log();
