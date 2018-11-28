@@ -1,20 +1,20 @@
 // Copyright 2017 Telefónica Digital España S.L.
-// 
+//
 // This file is part of UrboCore API.
-// 
+//
 // UrboCore API is free software: you can redistribute it and/or
 // modify it under the terms of the GNU Affero General Public License as
 // published by the Free Software Foundation, either version 3 of the
 // License, or (at your option) any later version.
-// 
+//
 // UrboCore API is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero
 // General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU Affero General Public License
 // along with UrboCore API. If not, see http://www.gnu.org/licenses/.
-// 
+//
 // For those usages not covered by this license please contact with
 // iot_support at tid dot es
 
@@ -60,31 +60,33 @@ module.exports.password = function (req, res, next) {
             return next(new Error(util.format('Cannot get user [%s] from DB nor LDAP',email)));
           }
 
-          // If user, auto-add user to DB
-          try {
-            user.name = user.cn;
-            user.surname = user.sn || '';
-            user.password = password;
-            user.nocipher = true;
-            user.email = email;
-            user.superadmin = false;
-            user.ldap = true;
-            user.scopes = ldapopts.defaultScopes;
-            var um = new usersmodel();
-            um.saveUser(user, function(err, id) {
-              if (err)
-                return next(new Error('Error importing user into DB'));
+          // If user, check if userCreation is active inside ldap config
+          if (ldapopts.autoCreateUserByLdap == true) {
+            try {
+              user.name = user.cn;
+              user.surname = user.sn || '';
+              user.password = password;
+              user.nocipher = true;
+              user.email = email;
+              user.superadmin = false;
+              user.ldap = true;
+              user.scopes = ldapopts.defaultScopes;
+              var um = new usersmodel();
+              um.saveUser(user, function(err, id) {
+                if (err)
+                  return next(new Error('Error importing user into DB'));
 
-              res.user = {
-                id: id,
-                name: user.name,
-                superadmin: false,
-                email: email,
-              }
-              return next();
-            });
-          } catch (e) {
-            return next(new Error(util.format('Something went wrong importing user from LDAP: %s', e)))
+                res.user = {
+                  id: id,
+                  name: user.name,
+                  superadmin: false,
+                  email: email,
+                }
+                return next();
+              });
+            } catch (e) {
+              return next(new Error(util.format('Something went wrong importing user from LDAP: %s', e)))
+            }
           }
 
         });
