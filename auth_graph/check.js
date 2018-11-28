@@ -54,6 +54,7 @@ module.exports.password = function (req, res, next) {
       // User not in DB, trying out LDAP, if available
       if (ldapopts) {
         var auth = new LdapAuth(ldapopts);
+
         auth.authenticate(email, password, function(err, user) {
 
           if (err) {
@@ -87,6 +88,8 @@ module.exports.password = function (req, res, next) {
             } catch (e) {
               return next(new Error(util.format('Something went wrong importing user from LDAP: %s', e)))
             }
+          } else {
+            return next();
           }
 
         });

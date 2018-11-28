@@ -57,6 +57,7 @@ ldap:
   defaultScopes:
     - scope_name
   autoCreateUserByLdap: true
+  forceLdapAuthtentication: true
 
 dema:
   orion:
