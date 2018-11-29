@@ -52,7 +52,7 @@ module.exports.password = function (req, res, next) {
 
     if (err || !data.rows.length) {
       // User not in DB, trying out LDAP, if available
-      if (ldapopts) {
+      if (ldapopts && ldapopts.forceLdapAuthtentication === true) {
         var auth = new LdapAuth(ldapopts);
 
         auth.authenticate(email, password, function(err, user) {
@@ -133,6 +133,7 @@ module.exports.password = function (req, res, next) {
       }
     }
   });
+
 }
 
 function checkToken(req,res,next) {
