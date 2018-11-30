@@ -60,6 +60,10 @@ app.set('jwtTokenExpiration', cfgData.auth.token_expiration || 600);
 var notifierTokenSecret = cfgData.notifier ? cfgData.notifier.token_secret : '';
 app.set('jwtNotifierTokenSecret', notifierTokenSecret);
 
+// Allow bigger payload size (up to 5mb)
+app.use(bodyParser.json({limit: "5mb"}));
+app.use(bodyParser.urlencoded({limit: "5mb", extended: true, parameterLimit:5000}));
+
 // Enable CORS
 app.use(function(req, res, next) {
   res.header('Access-Control-Allow-Origin', '*');
