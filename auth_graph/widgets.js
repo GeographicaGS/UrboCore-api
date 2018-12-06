@@ -100,9 +100,18 @@ router.post('/',
       data: {}
     })
 
+    opts.payload.push({
+      url: host + '/scopes?metadata=true&access_token_public=' + opts.token,
+      data: {}
+    })
 
     opts.payload.push({
       url: host + '/scopes/' + req.scope + '/metadata?access_token_public=' + opts.token,
+      data: {}
+    })
+
+    opts.payload.push({
+      url: host + '/metadata?access_token_public=' + opts.token,
       data: {}
     })
 
