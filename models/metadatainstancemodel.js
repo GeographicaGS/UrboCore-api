@@ -408,7 +408,7 @@ MetadataInstanceModel.prototype.getScopesWithMetadata = function(scope, user, cb
 
   var users_data_qry = '';
   var users_flt_qry = '';
-  if (user.superadmin) {
+  if (user.superadmin || user.id === cons.PUBLISHED) {
     users_data_qry = `
       ,array(
         SELECT

@@ -80,7 +80,7 @@ router.get('/idm/login', function(req, res, next) {
     }
     var access_token = response1.access_token;
 
-    oauth.get(cfgData.idm.url + '/user/', access_token, function (error2, response2) {
+    oauth.get(cfgData.idm.url + '/user', access_token, function (error2, response2) {
       if (error2) {
         return next(error2);
       }
