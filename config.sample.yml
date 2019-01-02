@@ -43,6 +43,11 @@ redis:
   # password: password
   ttl: 15  # In minutes
 
+
+generators:
+  # connector yml generator
+  createUserOnVerticalCreation: false
+
 ldap:
   url: ldap://x.x.x.x:x
   bindDn: "Dn"
@@ -123,6 +128,19 @@ microstrategy:
 idm:
   client_id: xxxxxxxxxxxxxxxxxxxx
   client_secret: xxxxxxxxxxxxxxxxxxxx
-  url: http://idm.cedus.eu/
+  url: http://idm.cedus.eu
   response_type: code
   callback_url: http://localhost/auth/idm/login
+
+# urbo-processing parameters -- Added to use it at the wizard connector generator for cedus
+processing:
+  active: false
+  url: http://localhost:port
+  requestAttempts: 5
+  psqlJob: connectorPsql
+  cartoJob: connectorCarto
+  jobAttempts: 3
+  priority: critical
+  auth:
+    user: urbo_connector
+    password: urbo_connector_password

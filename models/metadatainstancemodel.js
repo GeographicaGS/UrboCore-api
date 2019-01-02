@@ -90,16 +90,16 @@ MetadataInstanceModel.prototype.createScope = function(data, cb) {
       }(),
       timezone: '\'' + timezone + '\'',
       config: `'{"carto": {"account": "${config.getDefaultCARTOUser().user}"}}'::jsonb`,
-    }
+    };
+
     var rawValues = _.values(values).join(',');
     var insertQry = baseQry + '(' + rawValues + ') RETURNING *;';
 
     if (!data.multi) {
       insertQry += 'CREATE SCHEMA IF NOT EXISTS ' + proposedSchema + ';';
-
     }
 
-    insertQry += 'COMMIT;'
+    insertQry += 'COMMIT;';
     try {
       this.query(insertQry, null, (function(err, d) {
         if (err) return cb(err);
@@ -243,6 +243,7 @@ MetadataInstanceModel.prototype.updateScope = function(scope, data, cb) {
 
 }
 
+
 MetadataInstanceModel.prototype.deleteScope = function(scope, cb) {
 
   var delQry = `
@@ -268,6 +269,7 @@ MetadataInstanceModel.prototype.deleteScope = function(scope, cb) {
 
 
 };
+
 
 MetadataInstanceModel.prototype.getScopeList = function(user, multi, cb) {
   var q_start = ['SELECT s.id_scope AS id, s.scope_name AS name,',
@@ -382,6 +384,7 @@ MetadataInstanceModel.prototype.getScopeList = function(user, multi, cb) {
   });
 };
 
+
 MetadataInstanceModel.prototype.getReducedScopes = function(cb) {
   var q = ['SELECT s.id_scope AS id, s.scope_name AS name, s.dbschema, s.parent_id_scope AS parent_id,',
     'ARRAY[ST_Y(s.geom), ST_X(s.geom)] as location, s.zoom,',
@@ -405,7 +408,8 @@ MetadataInstanceModel.prototype.getScopesWithMetadata = function(scope, user, cb
 
   var users_data_qry = '';
   var users_flt_qry = '';
-  if (user.superadmin) {
+  if (user.superadmin || user.id === cons.PUBLISHED) {
+    user.superadmin = true;
     users_data_qry = `
       ,array(
         SELECT
@@ -504,6 +508,7 @@ MetadataInstanceModel.prototype.getScopesWithMetadata = function(scope, user, cb
     return cb(null, d.rows);
   });
 };
+
 
 MetadataInstanceModel.prototype.getScope = function(scope, user, cb) {
   var _this = this;
@@ -615,6 +620,7 @@ MetadataInstanceModel.prototype.getScope = function(scope, user, cb) {
   });
 };
 
+
 // /scopes/:scope/metadata
 MetadataInstanceModel.prototype.getMetadataForScope = function(id_scope, user, cb) {
 
@@ -695,6 +701,7 @@ MetadataInstanceModel.prototype.getMetadataForScope = function(id_scope, user, c
   ;
 };
 
+
 MetadataInstanceModel.prototype.getVarQuery = function(id_scope, id_variable, cb) {
   var varQry = `SELECT
     vs.var_name,
@@ -711,6 +718,7 @@ MetadataInstanceModel.prototype.getVarQuery = function(id_scope, id_variable, cb
   else
     return this.promise_query(varQry, null);
 }
+
 
 MetadataInstanceModel.prototype.getVarQueryArray = function(scope, variables, cb) {
   if (variables.constructor === Array) {
@@ -739,6 +747,7 @@ MetadataInstanceModel.prototype.getVarQueryArray = function(scope, variables, cb
     return this.promise_query(varQry.join(' '), null);
 }
 
+
 MetadataInstanceModel.prototype.getVarQueryArrayMultiEnt = function(scope, variables, cb) {
   var vars = _.map(variables.split(','), function(ent) {return modelutils.wrapStrings(ent, '\'')});
   var varQry = ['WITH q AS',
@@ -763,7 +772,6 @@ MetadataInstanceModel.prototype.getVarQueryArrayMultiEnt = function(scope, varia
   else
     return this.promise_query(varQry.join(' '), null);
 }
-
 
 
 MetadataInstanceModel.prototype.getVariableForAgg = function(scope, variables, cb) {
@@ -795,6 +803,7 @@ MetadataInstanceModel.prototype.getVariableForAgg = function(scope, variables, c
   else
     return this.promise_query(varQry.join(' '), null);
 }
+
 
 MetadataInstanceModel.prototype.getVarsForRawData= function(scope, entity, variables) {
 
@@ -903,6 +912,7 @@ MetadataInstanceModel.prototype.getMapCounters = function(scope,opts,cb) {
   });
 };
 
+
 // TODO: Find a proper name
 MetadataInstanceModel.prototype.getAllElementsByDevice = function(scope,id_entity,cb) {
 
@@ -946,6 +956,7 @@ MetadataInstanceModel.prototype.getMetadataQueryForDeviceLastData = function(sco
   });
 }
 
+
 MetadataModel.prototype.entityVariablesFields = function(id_scope, id_entity,cb) {
   var sql = `
     SELECT json_agg(json_build_object('id_var',id_variable,'field',entity_field)) as varfields,
@@ -956,8 +967,7 @@ MetadataModel.prototype.entityVariablesFields = function(id_scope, id_entity,cb)
 }
 
 
-// NOT USED ?
-// DEPRECATED ?
+// NOT USED ? // DEPRECATED ?
 MetadataInstanceModel.prototype.getMapMetadataQuery = function(scope, cb) {
   var mapMtdQry = ['WITH q AS'
         + '(SELECT s.dbschema, e.entity_name, e.table_name, c.category_name, '
@@ -1007,6 +1017,7 @@ MetadataInstanceModel.prototype.getEntitiesForDevicesMapByEntity = function(scop
   }
 }
 
+
 MetadataInstanceModel.prototype.getEntitiesForDevicesMapByScope = function(scope, entities, cb) {
 
   var dev_ents = _.map(entities.split(','), function(ent) {return modelutils.wrapStrings(ent, '\'')});
@@ -1022,6 +1033,7 @@ MetadataInstanceModel.prototype.getEntitiesForDevicesMapByScope = function(scope
   }
 }
 
+
 MetadataInstanceModel.prototype.getChildrenForScope = function(scope, cb) {
   var q = 'SELECT id_scope as id, scope_name as name, status from metadata.scopes where parent_id_scope=\''+scope+'\'';
   this.query(q, null, function(err, children) {
@@ -1035,6 +1047,7 @@ MetadataInstanceModel.prototype.getCARTOAccountsAndCategories = function() {
   var q = 'select config->\'carto\'->\'account\' as account,id_category from metadata.categories_scopes group by config->\'carto\'->\'account\',id_category';
   return this.promise_query(q);
 }
+
 
 MetadataInstanceModel.prototype.getCARTOAccount = function(id_scope,id_category) {
   var ending = id_category ? ` AND a.id_category = '${id_category}'` : '';
@@ -1051,6 +1064,7 @@ MetadataInstanceModel.prototype.getCARTOAccount = function(id_scope,id_category)
   return this.promise_query(q);
 }
 
+
 MetadataInstanceModel.prototype.getAggVarsFromEntity = function(scope, entity) {
   var q = `SELECT array_agg(entity_field) AS columns, table_name AS table
       FROM metadata.variables_scopes
@@ -1062,6 +1076,7 @@ MetadataInstanceModel.prototype.getAggVarsFromEntity = function(scope, entity) {
   return this.promise_query(q);
 };
 
+
 MetadataInstanceModel.prototype.getEntityTable = function(scope, entity) {
   var q = `SELECT table_name AS table
       FROM metadata.entities_scopes
@@ -1069,5 +1084,6 @@ MetadataInstanceModel.prototype.getEntityTable = function(scope, entity) {
 
   return this.promise_query(q);
 };
+
 
 module.exports = MetadataInstanceModel;

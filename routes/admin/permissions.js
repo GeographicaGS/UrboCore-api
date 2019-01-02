@@ -64,6 +64,7 @@ function getResource(req,res,next){
 
 router.get('/:id_resource', getResource);
 
+// get all permissions
 router.get('/', function(req, res, next){
   req.params.id_resource = req.params.scope;
   next();
