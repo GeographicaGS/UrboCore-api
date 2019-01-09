@@ -82,6 +82,9 @@ var logParams = config.getLogOpt();
 app.use(log4js.connectLogger(log, logParams.access));  // Morgan substitute
 log.info('Access logger successfully started');
 
+// Static Resources (used bz aquasig demo)
+app.use('/uploads', express.static(__dirname + '/uploads'));
+
 // Data middlewares
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
