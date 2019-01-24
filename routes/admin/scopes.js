@@ -84,7 +84,7 @@ var addScopeValidator = function(req, res, next){
   req.checkBody('multi', 'boolean required').isBoolean();
   req.checkBody('timezone', 'invalid timezone').optional().isValidTimezone();
    // Async Validation
-  req.checkBody('multi', 'invalid or non-existent parent_id').optional().validMulti(req.body.parent_id, res.user);
+  req.checkBody('parent_id', 'invalid or non-existent parent_id').optional().validMulti(req.body.parent_id, res.user);
 
   return next();
 };
