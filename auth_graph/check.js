@@ -37,6 +37,49 @@ function invalidUserPassword() {
   return error;
 }
 
+function invalidLdapUser() {
+  var error = new Error('Invalid Ldap user or password');
+  error.status = 401;
+  return error;
+}
+
+function createdbUserFromLdapUser(ldapuser, password, email, callback) {
+  var user = {};
+
+  try {
+    user.name = ldapuser.cn;
+    user.surname = ldapuser.sn || '';
+    user.password = password;
+    user.nocipher = true;
+    user.email = email;
+    user.superadmin = false;
+    user.ldap = true;
+    user.scopes = ldapopts.defaultScopes;
+    var um = new usersmodel();
+    um.saveUser(user, function(err, id) {
+
+      var userid = id;
+      if (err)
+        return callback (new Error('Error importing user into DB'), null);
+
+      var resUser = {
+        id: userid,
+        name: user.name,
+        superadmin: false,
+        email: email,
+        ldap: true
+      }
+
+      return callback (null, resUser) ;
+
+    });
+  } catch (e) {
+    var error = new Error(util.format('Something went wrong importing user from LDAP: %s', e));
+    return callback(error, null);
+  }
+
+}
+
 module.exports.password = function (req, res, next) {
   var email = req.body.email;
   var password = req.body.password;
@@ -47,92 +90,153 @@ module.exports.password = function (req, res, next) {
     return next(error);
   }
 
-  var m = new model();
-  m.getUserByEmail(email,function(err, data) {
+  // first we check if user need to be authenticated as LDAP user
+  if (ldapopts.forceLdapAuthentication === true) {
 
-    if (err || !data.rows.length) {
-      // User not in DB, trying out LDAP, if available
-      if (ldapopts && ldapopts.forceLdapAuthtentication === true) {
-        var auth = new LdapAuth(ldapopts);
+    log.info("forceLdapAuthtentication active");
 
-        auth.authenticate(email, password, function(err, user) {
+    var auth = new LdapAuth(ldapopts);
+    var ldapusername = email.replace(/@.*$/,"");
 
-          if (err) {
-            return next(new Error(util.format('Cannot get user [%s] from DB nor LDAP',email)));
-          }
+    auth.authenticate(ldapusername, password, function(err, user) {
 
-          // If user, check if userCreation is active inside ldap config
-          if (ldapopts.autoCreateUserByLdap == true) {
-            try {
-              user.name = user.cn;
-              user.surname = user.sn || '';
-              user.password = password;
-              user.nocipher = true;
-              user.email = email;
-              user.superadmin = false;
-              user.ldap = true;
-              user.scopes = ldapopts.defaultScopes;
-              var um = new usersmodel();
-              um.saveUser(user, function(err, id) {
-                if (err)
-                  return next(new Error('Error importing user into DB'));
-
-                res.user = {
-                  id: id,
-                  name: user.name,
-                  superadmin: false,
-                  email: email,
-                }
-                return next();
-              });
-            } catch (e) {
-              return next(new Error(util.format('Something went wrong importing user from LDAP: %s', e)))
-            }
-          } else {
-            return next();
-          }
-
-        });
-
-
-      } else {
-        return next(invalidUserPassword());
+      if (err) {
+        return next(invalidLdapUser());
       }
-    }
 
-    if (data && data.rows && data.rows.length) {
-      var user = data.rows[0];
+      var ldapuser = user;
 
-      if (user.ldap && ldapopts) {
-        var auth = new LdapAuth(ldapopts);
-        auth.authenticate(email, password, function(err, ldapuser) {
-          if (err) {
+      // if Ldap user exists we check if exists in our db
+      var m = new model();
+      m.getUserByEmail(email,function(err, data) {
+
+        // user not exists in our database
+        if (err || !data.rows.length) {
+
+          // We check if we have to create it or return a login error
+          if (ldapopts.autoCreateUserByLdap === true) {
+
+            return createdbUserFromLdapUser(ldapuser, password, email, function(err, resUser) {
+                if (err) {
+                  return next(err);
+                }
+                 res.user = resUser;
+                 return next();
+            });
+
+          }
+          // if it is not necessary create new user, we return an error, because the urbo login failed
+          else {
             return next(invalidUserPassword());
           }
 
-          var um = new usersmodel();
-          um.editHashedPassword(user.users_id, ldapuser.userPassword, function(err, done) {
+        }
+
+        // if user exists we check the password
+        if (data && data.rows && data.rows.length) {
+          var user = data.rows[0];
+          if (user.password === password) {
             user.id = user.users_id;
             delete user.password;
             delete user.users_id;
             res.user = user;
             return next();
-          });
-        });
+          }
+          else {
+            return next(invalidUserPassword());
+          }
+        }
 
+      });
+
+    });
+
+  // if not LDAP Authentification is needed, we check if user is in our db directly
+  } else {
+
+    log.info("forceLdapAuthtentication inactive");
+
+    var m = new model();
+    m.getUserByEmail(email,function(err, data) {
+
+      if (err || !data.rows.length) {
+
+        // User not in DB, trying out LDAP, if available
+        if (ldapopts) {
+          var auth = new LdapAuth(ldapopts);
+          var ldapusername = email.replace(/@.*$/,"");
+
+          auth.authenticate(ldapusername, password, function(err, user) {
+
+            if (err) {
+              return next(new Error(util.format('Cannot get user [%s] from DB nor LDAP',email)));
+            }
+
+            var ldapuser = user;
+
+            // If LDAP user, check if userCreation_in_our_db_from_ldap_user is active inside ldap config
+            if (ldapopts.autoCreateUserByLdap == true) {
+
+              return createdbUserFromLdapUser(ldapuser, password, email, function(err, resUser) {
+                if (err) {
+                  return next(err);
+                }
+                 res.user = resUser;
+                 return next();
+              });
+
+            } else {
+              return next();
+            }
+
+          });
+
+        } else {
+          return next(invalidUserPassword());
+        }
       }
-      else if (user.password === password) {
-        user.id = user.users_id;
-        delete user.password;
-        delete user.users_id;
-        res.user = user;
-        return next();
+
+      if (data && data.rows && data.rows.length) {
+        var user = data.rows[0];
+
+        // update dbUser password using ldap password
+        if (user.ldap && ldapopts) {
+
+          var auth = new LdapAuth(ldapopts);
+          var ldapusername = email.replace(/@.*$/,"");
+
+          auth.authenticate(ldapusername, password, function(err, ldapuser) {
+
+            if (err) {
+              return next(invalidLdapUser());
+            }
+
+            var um = new usersmodel();
+            um.editHashedPassword(user.users_id, password, function(err, done) {
+              user.id = user.users_id;
+              delete user.password;
+              delete user.users_id;
+              res.user = user;
+              return next();
+            });
+          });
+
+        }
+        else if (user.password === password) {
+          user.id = user.users_id;
+          delete user.password;
+          delete user.users_id;
+          res.user = user;
+          return next();
+        }
+        else {
+          return next(invalidUserPassword());
+        }
       }
-      else {
-        return next(invalidUserPassword());
-      }
-    }
-  });
+
+    });
+
+  }
 
 }
 
