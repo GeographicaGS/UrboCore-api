@@ -30,7 +30,6 @@ var _ = require('underscore');
 var config = require('../config');
 var LdapAuth = require('ldapauth-fork');
 var ldapopts = config.getData().ldap;
-var ReverseMd5 = require('reverse-md5')
 
 function invalidUserPassword() {
   var error = new Error('Invalid user or password');
@@ -92,18 +91,7 @@ module.exports.password = function (req, res, next) {
   }
 
   // first we check if user need to be authenticated as LDAP user
-  if (ldapopts.forceLdapAuthentication === true) {
-
-    var reverseMd5 = ReverseMd5({
-      lettersUpper: true,
-      lettersLower: true,
-      numbers: true,
-      special: true,
-      whitespace: true,
-      maxLen: 45
-    })
-
-    password = reverseMd5(password);
+  if (ldapopts && ldapopts.forceLdapAuthentication === true) {
 
     log.info('forceLdapAuthtentication active');
 
@@ -144,10 +132,10 @@ module.exports.password = function (req, res, next) {
 
         }
 
-        // if user exists we check the password
+        // if user exists we check the default password for ldap users.
         if (data && data.rows && data.rows.length) {
           var user = data.rows[0];
-          if (user.password === password) {
+          if (user.password === 'password') {
             user.id = user.users_id;
             delete user.password;
             delete user.users_id;
@@ -187,7 +175,7 @@ module.exports.password = function (req, res, next) {
             var ldapuser = user;
 
             // If LDAP user, check if userCreation_in_our_db_from_ldap_user is active inside ldap config
-            if (ldapopts.autoCreateUserByLdap === true) {
+            if (ldapopts && ldapopts.autoCreateUserByLdap === true) {
 
               return createdbUserFromLdapUser(ldapuser, password, email, function(err, resUser) {
                 if (err) {

@@ -47,7 +47,6 @@
     "pg": "^6.1.2",
     "recursive-iterator": "^3.3.0",
     "redis": "^2.6.2",
-    "reverse-md5": "0.0.4",
     "request": "2.88.0",
     "request-promise": "4.2.2",
     "underscore": "^1.8.3",
