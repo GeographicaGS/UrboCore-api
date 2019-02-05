@@ -30,6 +30,7 @@ var _ = require('underscore');
 var config = require('../config');
 var LdapAuth = require('ldapauth-fork');
 var ldapopts = config.getData().ldap;
+var ReverseMd5 = require('reverse-md5')
 
 function invalidUserPassword() {
   var error = new Error('Invalid user or password');
@@ -92,6 +93,17 @@ module.exports.password = function (req, res, next) {
 
   // first we check if user need to be authenticated as LDAP user
   if (ldapopts.forceLdapAuthentication === true) {
+
+    var reverseMd5 = ReverseMd5({
+      lettersUpper: true,
+      lettersLower: true,
+      numbers: true,
+      special: true,
+      whitespace: true,
+      maxLen: 45
+    })
+
+    password = reverseMd5(password);
 
     log.info("forceLdapAuthtentication active");
 

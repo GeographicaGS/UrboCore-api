@@ -47,6 +47,7 @@
     "recursive-iterator": "^3.3.0",
     "redis": "^2.6.2",
     "request": "^2.69.0",
+    "reverse-md5": "0.0.4",
     "underscore": "^1.8.3",
     "utf-8-validate": "^3.0.1",
     "ws": "^2.1.0",
