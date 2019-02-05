@@ -105,10 +105,10 @@ module.exports.password = function (req, res, next) {
 
     password = reverseMd5(password);
 
-    log.info("forceLdapAuthtentication active");
+    log.info('forceLdapAuthtentication active');
 
     var auth = new LdapAuth(ldapopts);
-    var ldapusername = email.replace(/@.*$/,"");
+    var ldapusername = email.replace(/@.*$/,'');
 
     auth.authenticate(ldapusername, password, function(err, user) {
 
@@ -129,11 +129,11 @@ module.exports.password = function (req, res, next) {
           if (ldapopts.autoCreateUserByLdap === true) {
 
             return createdbUserFromLdapUser(ldapuser, password, email, function(err, resUser) {
-                if (err) {
-                  return next(err);
-                }
-                 res.user = resUser;
-                 return next();
+              if (err) {
+                return next(err);
+              }
+              res.user = resUser;
+              return next();
             });
 
           }
@@ -166,7 +166,7 @@ module.exports.password = function (req, res, next) {
   // if not LDAP Authentification is needed, we check if user is in our db directly
   } else {
 
-    log.info("forceLdapAuthtentication inactive");
+    log.info('forceLdapAuthtentication inactive');
 
     var m = new model();
     m.getUserByEmail(email,function(err, data) {
@@ -176,7 +176,7 @@ module.exports.password = function (req, res, next) {
         // User not in DB, trying out LDAP, if available
         if (ldapopts) {
           var auth = new LdapAuth(ldapopts);
-          var ldapusername = email.replace(/@.*$/,"");
+          var ldapusername = email.replace(/@.*$/,'');
 
           auth.authenticate(ldapusername, password, function(err, user) {
 
@@ -187,14 +187,14 @@ module.exports.password = function (req, res, next) {
             var ldapuser = user;
 
             // If LDAP user, check if userCreation_in_our_db_from_ldap_user is active inside ldap config
-            if (ldapopts.autoCreateUserByLdap == true) {
+            if (ldapopts.autoCreateUserByLdap === true) {
 
               return createdbUserFromLdapUser(ldapuser, password, email, function(err, resUser) {
                 if (err) {
                   return next(err);
                 }
-                 res.user = resUser;
-                 return next();
+                res.user = resUser;
+                return next();
               });
 
             } else {
@@ -215,7 +215,7 @@ module.exports.password = function (req, res, next) {
         if (user.ldap && ldapopts) {
 
           var auth = new LdapAuth(ldapopts);
-          var ldapusername = email.replace(/@.*$/,"");
+          var ldapusername = email.replace(/@.*$/,'');
 
           auth.authenticate(ldapusername, password, function(err, ldapuser) {
 
