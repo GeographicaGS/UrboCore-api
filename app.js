@@ -60,6 +60,10 @@ app.set('jwtTokenExpiration', cfgData.auth.token_expiration || 600);
 var notifierTokenSecret = cfgData.notifier ? cfgData.notifier.token_secret : '';
 app.set('jwtNotifierTokenSecret', notifierTokenSecret);
 
+// Allow bigger payload size (up to 5mb)
+app.use(bodyParser.json({limit: "5mb"}));
+app.use(bodyParser.urlencoded({limit: "5mb", extended: true, parameterLimit:5000}));
+
 // Enable CORS
 app.use(function(req, res, next) {
   res.header('Access-Control-Allow-Origin', '*');
@@ -77,6 +81,9 @@ app.use(function(req, res, next) {
 var logParams = config.getLogOpt();
 app.use(log4js.connectLogger(log, logParams.access));  // Morgan substitute
 log.info('Access logger successfully started');
+
+// Static Resources (used bz aquasig demo)
+app.use('/uploads', express.static(__dirname + '/uploads'));
 
 // Data middlewares
 app.use(bodyParser.json());

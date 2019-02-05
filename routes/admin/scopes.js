@@ -84,7 +84,7 @@ var addScopeValidator = function(req, res, next){
   req.checkBody('multi', 'boolean required').isBoolean();
   req.checkBody('timezone', 'invalid timezone').optional().isValidTimezone();
    // Async Validation
-  req.checkBody('multi', 'invalid or non-existent parent_id').optional().validMulti(req.body.parent_id, res.user);
+  req.checkBody('parent_id', 'invalid or non-existent parent_id').optional().validMulti(req.body.parent_id, res.user);
 
   return next();
 };
@@ -103,7 +103,7 @@ router.post('/',
         return next(err);
       }
       else {
-        if ( config.getData().generators.createUserOnVerticalCreation === true ) {
+        if ( config.getData().generators && config.getData().generators.createUserOnVerticalCreation === true ) {
 
           let dbusersmodel = new DBUsersModel();
           dbusersmodel.createScopeDBUser(data.id)
@@ -199,7 +199,7 @@ router.delete('/:scope',
     else {
       if(status==='ok'){
 
-        if ( config.getData().generators.createUserOnVerticalCreation === true ) {
+        if ( config.getData().generators && config.getData().generators.createUserOnVerticalCreation === true ) {
 
           let dbusersmodel = new DBUsersModel();
           dbusersmodel.deleteScopeDBUser(req.params.scope)
