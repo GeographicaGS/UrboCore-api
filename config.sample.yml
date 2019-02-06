@@ -56,6 +56,8 @@ ldap:
   searchFilter: "mail={{username}}"
   defaultScopes:
     - scope_name
+  autoCreateUserByLdap: false
+  forceLdapAuthtentication: false
 
 dema:
   orion:
