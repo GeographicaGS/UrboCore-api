@@ -1,20 +1,20 @@
 // Copyright 2017 Telefónica Digital España S.L.
-// 
+//
 // This file is part of UrboCore API.
-// 
+//
 // UrboCore API is free software: you can redistribute it and/or
 // modify it under the terms of the GNU Affero General Public License as
 // published by the Free Software Foundation, either version 3 of the
 // License, or (at your option) any later version.
-// 
+//
 // UrboCore API is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero
 // General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU Affero General Public License
 // along with UrboCore API. If not, see http://www.gnu.org/licenses/.
-// 
+//
 // For those usages not covered by this license please contact with
 // iot_support at tid dot es
 
@@ -37,76 +37,116 @@ function invalidUserPassword() {
   return error;
 }
 
+function invalidLdapUser() {
+  var error = new Error('Invalid Ldap user or password');
+  error.status = 401;
+  return error;
+}
+
+function createdbUserFromLdapUser(ldapuser, password, email, callback) {
+  var user = {};
+
+  try {
+    user.name = ldapuser.uid;
+    user.surname = ldapuser.uid || '';
+    user.password = 'urboldappassword';
+    user.nocipher = true;
+    user.email = email;
+    user.superadmin = false;
+    user.ldap = true;
+    user.scopes = ldapopts.defaultScopes;
+    var um = new usersmodel();
+    um.saveUser(user, function(err, id) {
+
+      var userid = id;
+      if (err)
+        return callback (new Error('Error importing user into DB'), null);
+
+      var resUser = {
+        id: userid,
+        name: user.name,
+        superadmin: false,
+        email: email,
+        ldap: true
+      }
+
+      return callback (null, resUser) ;
+
+    });
+  } catch (e) {
+    var error = new Error(util.format('Something went wrong importing user from LDAP: %s', e));
+    return callback(error, null);
+  }
+
+}
+
+function authLdapUser(password, email, callback) {
+  var auth = new LdapAuth(ldapopts);
+  var ldapusername = email.replace(/@.*$/,'');
+  auth.authenticate(ldapusername, password, function(err, user) {
+    if (err) {
+      return callback(user, null);
+    }
+    else {
+      return callback(null, user);
+    }
+  });
+}
+
 module.exports.password = function (req, res, next) {
   var email = req.body.email;
   var password = req.body.password;
 
+  // params validation
   if (!email||!password) {
     var error = new Error('Invalid parameters');
     error.status = 422;
     return next(error);
   }
 
+
   var m = new model();
   m.getUserByEmail(email,function(err, data) {
 
+    // NO URBO USER
     if (err || !data.rows.length) {
-      // User not in DB, trying out LDAP, if available
-      if (ldapopts) {
-        var auth = new LdapAuth(ldapopts);
-        auth.authenticate(email, password, function(err, user) {
 
+      if (ldapopts && ldapopts.autoCreateUserByLdap === true && ldapopts.forceLdapAuthentication !== true) {
+
+
+        authLdapUser(password, email, function(err, ldapuser) {
           if (err) {
-            return next(new Error(util.format('Cannot get user [%s] from DB nor LDAP',email)));
+            return next(invalidLdapUser());
           }
-
-          // If user, auto-add user to DB
-          try {
-            user.name = user.cn;
-            user.surname = user.sn || '';
-            user.password = password;
-            user.nocipher = true;
-            user.email = email;
-            user.superadmin = false;
-            user.ldap = true;
-            user.scopes = ldapopts.defaultScopes;
-            var um = new usersmodel();
-            um.saveUser(user, function(err, id) {
-              if (err)
-                return next(new Error('Error importing user into DB'));
-
-              res.user = {
-                id: id,
-                name: user.name,
-                superadmin: false,
-                email: email,
-              }
-              return next();
-            });
-          } catch (e) {
-            return next(new Error(util.format('Something went wrong importing user from LDAP: %s', e)))
-          }
+          return createdbUserFromLdapUser(ldapuser, password, email, function(err, resUser) {
+            if (err) {
+              return next(err);
+            }
+            res.user = resUser;
+            return next();
+          });
 
         });
 
-
-      } else {
+      }
+      else {
         return next(invalidUserPassword());
       }
+
     }
 
+    // URBO USER
     if (data && data.rows && data.rows.length) {
       var user = data.rows[0];
 
-      if (user.ldap && ldapopts) {
-        var auth = new LdapAuth(ldapopts);
-        auth.authenticate(email, password, function(err, ldapuser) {
+      // Check LDAP USER if necessary
+      if (user.ldap && ldapopts && ldapopts.forceLdapAuthentication === true) {
+        authLdapUser(password, email, function(err, ldapuser) {
           if (err) {
-            return next(invalidUserPassword());
+            return next(invalidLdapUser());
           }
-
           var um = new usersmodel();
-          um.editHashedPassword(user.users_id, ldapuser.userPassword, function(err, done) {
+          um.editHashedPassword(user.users_id, password, function(err, done) {
             user.id = user.users_id;
             delete user.password;
             delete user.users_id;
@@ -114,8 +154,13 @@ module.exports.password = function (req, res, next) {
             return next();
           });
         });
-
       }
+
+      if (!user.ldap && ldapopts && ldapopts.forceLdapAuthentication === true) {
+        return next(invalidUserPassword());
+      }
+
+      // Check PASSWORD
       else if (user.password === password) {
         user.id = user.users_id;
         delete user.password;
@@ -123,11 +168,16 @@ module.exports.password = function (req, res, next) {
         res.user = user;
         return next();
       }
+
       else {
         return next(invalidUserPassword());
       }
     }
+
   });
+
+
+
 }
 
 function checkToken(req,res,next) {
@@ -227,7 +277,6 @@ function checkPublishedOrCheckToken(req, res, next) {
       }
 
     }).catch(function(err) {
-      log.error(err);
       var error = new Error('Invalid token');
       error.status = 403;
       return next(error);
