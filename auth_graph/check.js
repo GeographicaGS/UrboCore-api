@@ -47,8 +47,8 @@ function createdbUserFromLdapUser(ldapuser, password, email, callback) {
   var user = {};
 
   try {
-    user.name = ldapuser.cn;
-    user.surname = ldapuser.sn || '';
+    user.name = ldapuser.uid;
+    user.surname = ldapuser.uid || '';
     user.password = 'urboldappassword';
     user.nocipher = true;
     user.email = email;
@@ -115,14 +115,10 @@ module.exports.password = function (req, res, next) {
 
 
         authLdapUser(password, email, function(err, ldapuser) {
-          log.info(err);
-          log.info('ldapuser', ldapuser);
           if (err) {
             return next(invalidLdapUser());
           }
           return createdbUserFromLdapUser(ldapuser, password, email, function(err, resUser) {
-            log.info(err);
-            log.info('resUser', resUser);
             if (err) {
               return next(err);
             }
@@ -281,7 +277,6 @@ function checkPublishedOrCheckToken(req, res, next) {
       }
 
     }).catch(function(err) {
-      log.error(err);
       var error = new Error('Invalid token');
       error.status = 403;
       return next(error);
