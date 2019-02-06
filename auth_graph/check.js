@@ -111,7 +111,7 @@ module.exports.password = function (req, res, next) {
     // NO URBO USER
     if (err || !data.rows.length) {
 
-      if (ldapopts && ldapopts.autoCreateUserByLdap === true && ldapopts.forceLdapAuthentication != true) {
+      if (ldapopts && ldapopts.autoCreateUserByLdap === true && ldapopts.forceLdapAuthentication !== true) {
 
 
         authLdapUser(password, email, function(err, ldapuser) {
