@@ -145,33 +145,42 @@ module.exports.password = function (req, res, next) {
           if (err) {
             return next(invalidLdapUser());
           }
-          var um = new usersmodel();
-          um.editHashedPassword(user.users_id, password, function(err, done) {
-            user.id = user.users_id;
-            delete user.password;
-            delete user.users_id;
-            res.user = user;
-            return next();
-          });
+          log.info('ldapuser -- ', ldapuser);
+          if (ldapuser != null ) {
+            var um = new usersmodel();
+            um.editHashedPassword(user.users_id, password, function(err, done) {
+              user.id = user.users_id;
+              delete user.password;
+              delete user.users_id;
+              res.user = user;
+              return next();
+            });
+          }
+          else {
+            return next(invalidLdapUser());
+          }
         });
+      } else {
+
+        if (!user.ldap && ldapopts && ldapopts.forceLdapAuthentication === true) {
+          return next(invalidUserPassword());
+        }
+
+        // Check PASSWORD
+        else if (user.password === password && !user.ldap) {
+          user.id = user.users_id;
+          delete user.password;
+          delete user.users_id;
+          res.user = user;
+          return next();
+        }
+
+        else {
+          return next(invalidUserPassword());
+        }
+
       }
 
-      if (!user.ldap && ldapopts && ldapopts.forceLdapAuthentication === true) {
-        return next(invalidUserPassword());
-      }
-
-      // Check PASSWORD
-      else if (user.password === password) {
-        user.id = user.users_id;
-        delete user.password;
-        delete user.users_id;
-        res.user = user;
-        return next();
-      }
-
-      else {
-        return next(invalidUserPassword());
-      }
     }
 
   });
