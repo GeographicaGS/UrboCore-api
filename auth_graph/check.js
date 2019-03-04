@@ -140,7 +140,7 @@ module.exports.password = function (req, res, next) {
       var user = data.rows[0];
 
       // Check LDAP USER if necessary
-      if (user.ldap && ldapopts && ldapopts.forceLdapAuthentication === true) {
+      if (ldapopts && ldapopts.forceLdapAuthentication === true) {
         authLdapUser(password, email, function(err, ldapuser) {
           if (err) {
             return next(invalidLdapUser());
@@ -162,8 +162,22 @@ module.exports.password = function (req, res, next) {
         });
       } else {
 
-        if (!user.ldap && ldapopts && ldapopts.forceLdapAuthentication === true) {
-          return next(invalidUserPassword());
+        if (user.ldap && ldapopts) {
+
+          authLdapUser(password, email, function(err, ldapuser) {
+            if (err) {
+              return next(invalidLdapUser());
+            }
+            return createdbUserFromLdapUser(ldapuser, password, email, function(err, resUser) {
+              if (err) {
+                return next(err);
+              }
+              res.user = resUser;
+              return next();
+            });
+
+          });
+
         }
 
         // Check PASSWORD
