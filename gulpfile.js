@@ -50,7 +50,7 @@ gulp.task('debug', function() {
 
 
 gulp.task('start-dev', ['debug'], function () {
-  watch('./**/*.js', batch(function(events, done) {
+  watch('./**(?!node_modules\b)/*.js', batch(function(events, done) {
     gulp.start('debug', done);
   }));
 });
