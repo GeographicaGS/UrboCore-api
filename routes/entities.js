@@ -20,8 +20,11 @@
 
 'use strict';
 
+var path = require('path');
+var fs = require('fs');
 var express = require('express');
 var router = express.Router();
+var multer = require('multer');
 var config = require('../config');
 var utils = require('../utils');
 var log = utils.log();
@@ -104,5 +107,67 @@ router.get('/search',auth.logged,function(req, res, next) {
     }
   });
 });
+
+
+var uploadCsv = multer({
+  dest: path.join(__dirname, '../uploads/temp'),
+  fileFilter: function (req, file, cb) {
+    var filetype = /csv/;
+    var mimetype = filetype.test(file.mimetype);
+    var extname = filetype.test(path.extname(file.originalname).toLowerCase());
+
+    if (mimetype && extname) {
+      return cb(null, true);
+    }
+    cb('Error: File upload only supports CSV filetype');
+  }
+});
+
+function importOptionsValidator(req, res, next) {
+  req.checkBody('options', 'required').notEmpty().custom(value => {
+    try {
+      var opts = JSON.parse(value);
+      var errors = [];
+      if (opts.fields == null || !Array.isArray(opts.fields) || opts.length === 0) // fields: required, array
+        errors.push('Invalid options.fields');
+      if (opts.delimiter == null || typeof opts.delimiter !== 'string') // delimiter: required, string
+        errors.push('Invalid options.delimiter');
+      if (opts.hasHeaders != null && typeof opts.hasHeaders !== 'boolean') // hasHeaders: optional, boolean
+        errors.push('Invalid options.hasHeaders');
+      if (errors.length > 0)
+        throw new Error(errors);
+    } catch(e) {
+      fs.unlink(req.file.path); // remove uploaded file
+      if (e instanceof SyntaxError)
+        throw new Error('Invalid options')
+      else 
+        throw new Error(e);
+    }
+    return true;
+  });
+  return next();
+};
+
+/*
+ * Import data from CSV file
+ */
+router.post('/:id/import/csv/', auth.logged, auth.protectSuperAdmin, uploadCsv.single('file'), importOptionsValidator,
+  function(req, res, next){
+    var params = JSON.parse(req.body.options);
+    var model = new EntitiesModel();
+    if (req.file) {
+      return model.importFromCSV(req.scope, req.params.id, params.fields, req.file.path, params.delimiter, Boolean(params.hasHeaders), function(err) {
+        fs.unlink(req.file.path);        
+        if (err) {
+          log.error('Import CSV: File import error');
+          return next(err);
+        } else {
+          return res.status(200).json({success: 'ok'});
+        }
+      });
+    }
+    return next('Import CSV: Missing file');
+  }
+);
 
 module.exports = router;

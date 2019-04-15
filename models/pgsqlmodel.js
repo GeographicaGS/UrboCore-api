@@ -20,7 +20,9 @@
 
 'use strict';
 
+var fs = require('fs');
 var pg = require('pg');
+var copyFrom = require('pg-copy-streams').from;
 var utils = require('../utils.js');
 var log = utils.log();
 var config = require('../config.js');
@@ -219,5 +221,34 @@ PGSQLModel.prototype.uq = function(sql, cb) {
     return cb(e);
   }
 };
+
+PGSQLModel.prototype.copyFromCsv = function(opts, cb) {
+  return new Promise(function(resolve, reject) {
+    pool.connect(function(err, client, done) {
+      if (err) return reject(err);
+      var q = `COPY ${opts.schema}.${opts.table} (${opts.fields.join(',')}) FROM STDIN WITH CSV DELIMITER '${opts.delimiter}'`;
+      if(opts.hasHeaders){
+        q += ' HEADER';
+      }
+      var stream = client.query(copyFrom(q));
+      var fileStream = fs.createReadStream(opts.filePath);
+      fileStream.on('error', (err) => {
+        done();
+        return reject(err);
+      });
+      stream.on('error', (err) => {
+        done();
+        return reject(err);
+      });
+      stream.on('end', ()=>{
+        done();
+        return resolve();
+      });
+      fileStream.pipe(stream);
+    });
+  }.bind(this))
+  .then(cb)
+  .catch(err => cb(err));
+}
 
 module.exports = PGSQLModel;

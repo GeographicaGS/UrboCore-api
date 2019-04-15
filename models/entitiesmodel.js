@@ -288,5 +288,16 @@ EntitiesModel.prototype.deleteEntitiesForCategory = function(opts, cb) {
   return this.promise_query(dropQ)
 }
 
+EntitiesModel.prototype.importFromCSV = function(id_scope, id_entity, fields, filePath, delimiter, hasHeaders, cb) {
+  const opts = {
+    schema: id_scope,
+    table: id_entity,
+    fields,
+    filePath,
+    delimiter,
+    hasHeaders
+  };
+  return this.copyFromCsv(opts, cb);
+}
 
 module.exports = EntitiesModel;

@@ -67,6 +67,9 @@ var exports = {
   },
   isNumber: function(value) {
     return !isNaN(value);
+  },
+  custom: function(value, foo) {
+    return foo(value);
   }
 }
 
