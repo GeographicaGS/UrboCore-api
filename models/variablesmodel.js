@@ -816,13 +816,21 @@ VariablesModel.prototype.getVariableHistoric = function(opts) {
     var select = null;
     if (Array.isArray(opts.agg)) {
       select = 'json_build_object(';
-      for (var agg of opts.agg) {
-        select += `'${ agg }', ${ agg }(${ dataVar.entity_field }), `
+      for (var agg of opts.agg) {        
+        if (agg.toUpperCase() === 'NOAGG') {
+          select += `'${ agg }', LAST(${ dataVar.entity_field }), `
+        } else {
+          select += `'${ agg }', ${ agg }(${ dataVar.entity_field }), `
+        }
       }
       select = select.slice(0, -2) + ')';
 
     } else {
-      select = `${ opts.agg }(${ dataVar.entity_field })`;
+      if (opts.agg.toUpperCase() === 'NOAGG') {
+        select = `LAST(${ dataVar.entity_field })`;
+      } else {
+        select = `${opts.agg}(${ dataVar.entity_field })`;
+      }
     }
     select += ' AS value'
 
