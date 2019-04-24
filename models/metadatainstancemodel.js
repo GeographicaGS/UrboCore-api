@@ -940,7 +940,7 @@ MetadataInstanceModel.prototype.getMetadataQueryForDeviceLastData = function(sco
     'FROM metadata.scopes s',
     'INNER JOIN metadata.categories_scopes c on c.id_scope = s.id_scope',
     'INNER JOIN metadata.entities_scopes e on c.id_category=e.id_category',
-    'INNER JOIN metadata.variables_scopes v on v.id_entity=e.id_entity',
+    'INNER JOIN metadata.variables_scopes v on v.id_entity=e.id_entity and s.id_scope = v.id_scope',
     'WHERE s.id_scope=$1 AND e.id_entity=$2 AND s.status=1 AND v.type!=\'aggregated\') ',
     'SELECT table_name, dbschema, id_entity, entity_name, category_name, ',
     'array_agg(id_variable) AS vars_ids, ',
