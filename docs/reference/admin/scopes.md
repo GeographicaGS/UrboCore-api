@@ -150,6 +150,31 @@ It adds an entity to the scope
 
 It removes an entity from the scope
 
+### POST /admin/scopes/:id_scope/entities/:id_entity/import/csv
+
+It imports data into an entity from a CSV file
+
+**Params**
+
+* options (mandatory): string with json format
+  * fields (mandatory): string[]
+  * delimiter (mandatory): string
+  * hasHeaders (optional): boolean
+* file (mandatory): CSV file upload 
+
+**Sample Request**
+
+```json
+{
+    "options": "{
+        "fields": ["id", "field_1", "field_2"], 
+        "delimiter": ",",
+        "hasHeaders": true
+    }",
+    "file": <csv_file>
+}
+```
+
 ### POST /admin/scopes/:id_scope/variables
 
 It adds a variable to the scope
