@@ -227,7 +227,7 @@ PGSQLModel.prototype.copyFromCsv = function(opts, cb) {
     pool.connect(function(err, client, done) {
       if (err) return reject(err);
       var q = `COPY ${opts.schema}.${opts.table} (${opts.fields.join(',')}) FROM STDIN WITH CSV DELIMITER '${opts.delimiter}'`;
-      if(opts.hasHeaders){
+      if (opts.hasHeaders) {
         q += ' HEADER';
       }
       var stream = client.query(copyFrom(q));
