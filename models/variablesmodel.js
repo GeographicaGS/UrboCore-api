@@ -846,7 +846,7 @@ VariablesModel.prototype.getVariableHistoric = function(opts) {
       var sql = `
         SELECT ${ select }
           FROM (
-            SELECT DISTINCT ld.position,${ selectJoin } p.*
+            SELECT DISTINCT ld.position_ld,${ selectJoin } p.*
               FROM ${ opts.scope }.${ dataVar.table_name } p
                 JOIN ${ opts.scope }.${ dataVar.entity_table_name }_lastdata ld
                   ON ld.id_entity = p.id_entity) AS foo
