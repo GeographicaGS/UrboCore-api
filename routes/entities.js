@@ -20,6 +20,7 @@
 
 'use strict';
 
+var path = require('path');
 var express = require('express');
 var router = express.Router();
 var config = require('../config');
