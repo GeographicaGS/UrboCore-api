@@ -427,7 +427,12 @@ DevicesModel.prototype.getDevicesRawData = function(opts, cb) {
     return Promise.all(promises);
   }).bind(this))
     .then(function(results) {
-      return new DevicesFormatter().rawData(results);
+      if (opts.format_tz && opts.format) {
+        return new DevicesFormatter().parsedData(results);
+      } else {
+        return new DevicesFormatter().rawData(results);
+      }
+
     })
     .catch(function(err) {
       return Promise.reject(err);

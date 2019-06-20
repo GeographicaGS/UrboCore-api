@@ -97,6 +97,7 @@ router.get('/:id_entity/:id_device/lastdata',
         log.error('Device info: Error when selecting data');
         next(err);
       } else {
+        print(r);
         res.json(r);
       }
     });
@@ -123,6 +124,7 @@ router.post('/:id_entity/:id_device/raw',
     let start = req.body.time.start;
     let finish = req.body.time.finish;
     let format = req.body.format;
+    let format_tz = req.body.format_tz;
 
     var opts = {
       scope: req.scope,
@@ -132,7 +134,8 @@ router.post('/:id_entity/:id_device/raw',
       finish: finish,
       id_vars: req.body.vars,
       filters: req.body.filters||{},
-      format: format
+      format: format,
+      format_tz: format_tz || ''
     };
 
     var model = new DevicesModel();
