@@ -55,7 +55,7 @@ Extends the functionalities of `/entities/search`
 Params:
 - entities (mandatory): entities to search. It's an object using the entities names as keys and the following attributes as values:
   - select (mandatory): fields to retrieve. Array
-  - suffix (optional): prefix to append to the entity associated table_name. String
+  - suffix (optional): suffix to append to the entity associated table_name. String
   - filters (mandatory): the same functionalities used in other endpoints. Object
 
 Request sample
@@ -67,7 +67,7 @@ Request sample
                 "id_entity",
                 "hasfirealert"
             ],
-            "prefix": "_lastdata",
+            "suffix": "_lastdata",
             "filters": {
                 "condition": {
                     "OR": {
@@ -82,7 +82,7 @@ Request sample
                 "id_entity",
                 "battery"
             ],
-            "prefix": "_lastdata",
+            "suffix": "_lastdata",
             "filters": {
                 "condition": {
                     "AND": {
