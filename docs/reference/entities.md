@@ -48,6 +48,79 @@ Response:
 }]
 ```
 
+### POST /:scope/entities/search/extended
+
+Extends the functionalities of `/entities/search`
+
+Params:
+- entities (mandatory): entities to search. It's an object using the entities names as keys and the following attributes as values:
+  - select (mandatory): fields to retrieve. Array
+  - suffix (optional): prefix to append to the entity associated table_name. String
+  - filters (mandatory): the same functionalities used in other endpoints. Object
+
+Request sample
+```json
+{
+    "entities": {
+        "fire_detection.fireforestobserved": {
+            "select": [
+                "id_entity",
+                "hasfirealert"
+            ],
+            "prefix": "_lastdata",
+            "filters": {
+                "condition": {
+                    "OR": {
+                        "id_entity__icontains": "Node9",
+                        "hasfirealert__eq": 1
+                    }
+                }
+            }
+        },
+        "fire_detection.weatherobserved": {
+            "select": [
+                "id_entity",
+                "battery"
+            ],
+            "prefix": "_lastdata",
+            "filters": {
+                "condition": {
+                    "AND": {
+                        "id_entity__icontains": "3A"
+                    }
+                }
+            }
+        }
+    }
+}
+```
+
+Response:
+```json
+{
+    "fire_detection.fireforestobserved": [
+        {
+            "id_entity": "fireForestObserved:Node9",
+            "hasfirealert": 0
+        },
+        {
+            "id_entity": "fireForestObserved:Simul1",
+            "hasfirealert": 1
+        },
+        {
+            "id_entity": "fireForestObserved:Simul2",
+            "hasfirealert": 1
+        }
+    ],
+    "fire_detection.weatherobserved": [
+        {
+            "id_entity": "weatherObserved:Node3A",
+            "battery": 78.647
+        }
+    ]
+}
+```
+
 ### GET /:scope/entities/map/counters
 
 It returns the number of elements by entities. If bbox param is specified the 'filter' value is the number of elements inside the viewport.

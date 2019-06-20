@@ -247,10 +247,10 @@ EntitiesModel.prototype.searchElementsExtended = function(scope, entities) {
         const qb = new QueryBuilder(entities[entityData.id_entity]);
         const queryFilter = `${qb.bbox()} ${qb.filter()}`;
 
-        const prefix = entities[entityData.id_entity].prefix;
+        const suffix = entities[entityData.id_entity].suffix || '';
         return this.cachedQuery(`
           SELECT DISTINCT ON (id_entity) ${entitySelect.join(', ')}
-          FROM ${entityData.dbschema}.${entityData.entity_table_name}${prefix}
+          FROM ${entityData.dbschema}.${entityData.entity_table_name}${suffix}
           WHERE TRUE ${queryFilter}
         `);
       }).bind(this)); 
