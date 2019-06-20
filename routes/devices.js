@@ -97,7 +97,6 @@ router.get('/:id_entity/:id_device/lastdata',
         log.error('Device info: Error when selecting data');
         next(err);
       } else {
-        print(r);
         res.json(r);
       }
     });
