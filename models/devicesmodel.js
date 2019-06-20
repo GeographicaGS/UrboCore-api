@@ -427,8 +427,8 @@ DevicesModel.prototype.getDevicesRawData = function(opts, cb) {
     return Promise.all(promises);
   }).bind(this))
     .then(function(results) {
-      if (opts.format_tz && opts.format) {
-        return new DevicesFormatter().parsedData(results);
+      if (opts.data_tz && opts.format) {
+        return new DevicesFormatter().parsedData(results, opts.data_tz);
       } else {
         return new DevicesFormatter().rawData(results);
       }

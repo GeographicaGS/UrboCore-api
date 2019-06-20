@@ -48,7 +48,7 @@ class DevicesFormatter extends BaseFormatter {
     return Promise.resolve(rslts);
   }
 
-  parsedData(results) {
+  parsedData(results, tz) {
 
 
     var rslts = [];
@@ -62,7 +62,7 @@ class DevicesFormatter extends BaseFormatter {
       rslts = _.union(_.flatten(rslts));
     }
     rslts.forEach(function(rsl) {
-      rsl.time = moment.tz(rsl.time, 'Europe/Madrid').format('DD/MM/YYYY HH:mm');
+      rsl.time = moment.tz(rsl.time, tz).format('DD/MM/YYYY HH:mm');
     });
     return Promise.resolve(rslts);
   }

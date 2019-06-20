@@ -124,7 +124,7 @@ router.post('/:id_entity/:id_device/raw',
     let start = req.body.time.start;
     let finish = req.body.time.finish;
     let format = req.body.format;
-    let format_tz = req.body.format_tz;
+    let data_tz = req.body.data_tz;
 
     var opts = {
       scope: req.scope,
@@ -135,7 +135,7 @@ router.post('/:id_entity/:id_device/raw',
       id_vars: req.body.vars,
       filters: req.body.filters||{},
       format: format,
-      format_tz: format_tz || ''
+      data_tz: data_tz || ''
     };
 
     var model = new DevicesModel();

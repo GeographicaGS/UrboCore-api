@@ -159,6 +159,8 @@ It returns a time serie of a variable (or a set of variables).
 - vars (mandatory): array of all variables ids.
 - start (mandatory): date start. Format is 'YYYY-MM-DD HH:MM'. Date time is UTC.
 - finish (mandatory): date finish. Format is 'YYYY-MM-DD HH:MM'. Date time is UTC.
+- format (optional): If its value is `csv` it will return a CSV file.
+- data_tz (optional, in conjunction with format): Will parse dates info into local user time zone.
 - bbox (optional) : [lx,ly,ux,uy]
 
 
@@ -172,6 +174,8 @@ Payload:
   },
   "filters": {
     "bbox": [-5.11170,37.24000,-5.10818,37.24303]
-  }
+  },
+  "format": "csv",
+  "data_tz": "Europe/Madrid"
 }
 ```
