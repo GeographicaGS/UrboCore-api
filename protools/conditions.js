@@ -92,6 +92,8 @@ Condition.prototype.getOp = function() {
     return 'LIKE';
   } else if (this.filter === 'regex') {
     return '~';
+  } else if (this.filter === 'icontains') {
+    return 'ILIKE';
   }
 }
 
@@ -111,6 +113,8 @@ Condition.prototype.toSQL = function() {
       return ' false ';
     }
     else return '';
+  } else if (this.filter === 'icontains') {
+    return ' ' + this.getFullColumn() + ' ' + this.getOp() + ' unaccent(\'%' + this.getValue() + '%\') ';
   }
   return ' ' + this.getFullColumn() + ' ' + this.getOp() + ' \'' + this.getValue() + '\' ';
 }

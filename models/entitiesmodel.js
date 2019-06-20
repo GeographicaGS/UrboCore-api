@@ -30,6 +30,7 @@ var utils = require('../utils');
 var modelutils = require('./modelutils.js');
 var log = utils.log();
 var auth = require('../auth.js');
+var QueryBuilder = require('../protools/querybuilder');
 
 function EntitiesModel(cfg) {
   PGSQLModel.call(this,cfg);
@@ -231,6 +232,40 @@ EntitiesModel.prototype.searchElements = function(opts,cb) {
       });
     }
   }).bind(this));
+}
+
+EntitiesModel.prototype.searchElementsExtended = function(scope, entities) {
+  const metadata = new MetadataInstanceModel();
+  return metadata
+    .getEntsForSearch(scope, Object.keys(entities))
+    .then(function(d) {
+      
+      const promises = d.rows.map(((entityData) => {
+
+        const entitySelect = entities[entityData.id_entity].select;
+
+        const qb = new QueryBuilder(entities[entityData.id_entity]);
+        const queryFilter = `${qb.bbox()} ${qb.filter()}`;
+
+        const suffix = entities[entityData.id_entity].suffix || '';
+        return this.cachedQuery(`
+          SELECT DISTINCT ON (id_entity) ${entitySelect.join(', ')}
+          FROM ${entityData.dbschema}.${entityData.entity_table_name}${suffix}
+          WHERE TRUE ${queryFilter}
+        `);
+      }).bind(this)); 
+
+      return Promise.all(promises)
+        .then(dataResult => {
+          // group result by id_entity
+          return Promise.resolve(_.reduce(dataResult, (result, r, i) => {
+            return Object.assign(result, {[d.rows[i].id_entity]: r.rows});
+          }, {}));
+        });
+    }.bind(this))
+    .catch(function(err) {
+      return Promise.reject(err);
+    });
 }
 
 EntitiesModel.prototype._getNonRegisteredEntities = function(term,limit) {

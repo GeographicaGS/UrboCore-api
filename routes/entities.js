@@ -106,4 +106,30 @@ router.get('/search',auth.logged,function(req, res, next) {
   });
 });
 
+router.post('/search/extended',auth.logged,function(req, res, next) {
+  let entities = req.body.entities;
+
+  if (entities == null || Object.keys(entities).length === 0) {
+    return next(utils.error('Bad parameters: Entities required', 400));
+  }
+
+  Object.keys(entities).forEach((entity) => {
+    const entitySelect = entities[entity].select;
+    if (entitySelect == null || entitySelect.length === 0) {
+      return next(utils.error('Bad parameters: Entity select required', 400));
+    }
+    const entityFilters = entities[entity].filters;
+    entities[entity].filters = entityFilters || {'condition': {}},
+    entities[entity].bbox = entityFilters ? entityFilters.bbox : undefined;
+  });
+
+  const model = new EntitiesModel();
+  model.searchElementsExtended(req.scope, entities)
+    .then(r => res.json(r))
+    .catch(err => {
+      log.error('Search elements: Error when selecting data');
+      next(err);
+    });
+});
+
 module.exports = router;
