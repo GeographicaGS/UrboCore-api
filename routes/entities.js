@@ -129,7 +129,7 @@ router.post('/search/extended',auth.logged,function(req, res, next) {
     .catch(err => {
       log.error('Search elements: Error when selecting data');
       next(err);
-  });
+    });
 });
 
 module.exports = router;
