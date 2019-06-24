@@ -242,14 +242,14 @@ EntitiesModel.prototype.searchElementsExtended = function(scope, entities) {
       
       const promises = d.rows.map(((entityData) => {
 
-        const entitySelect = entities[entityData.id_entity].select;
+        const entitySelect = ['', ..._.without(entities[entityData.id_entity].select, ['id_entity', 'position'])];
 
         const qb = new QueryBuilder(entities[entityData.id_entity]);
         const queryFilter = `${qb.bbox()} ${qb.filter()}`;
 
         const suffix = entities[entityData.id_entity].suffix || '';
         return this.cachedQuery(`
-          SELECT DISTINCT ON (id_entity) ${entitySelect.join(', ')}
+          SELECT DISTINCT ON (id_entity) id_entity, ST_AsGeoJSON(position) as geometry ${entitySelect.join(', ')}
           FROM ${entityData.dbschema}.${entityData.entity_table_name}${suffix}
           WHERE TRUE ${queryFilter}
         `);
@@ -259,7 +259,15 @@ EntitiesModel.prototype.searchElementsExtended = function(scope, entities) {
         .then(dataResult => {
           // group result by id_entity
           return Promise.resolve(_.reduce(dataResult, (result, r, i) => {
-            return Object.assign(result, {[d.rows[i].id_entity]: r.rows});
+            const rows = r.rows.map((v)=>{
+              console.log()
+              return Object.assign(v, {
+                geometry: v.geometry ? JSON.parse(v.geometry).coordinates : null
+              });
+            });
+            return Object.assign(result, {
+              [d.rows[i].id_entity]: r.rows
+            });
           }, {}));
         });
     }.bind(this))
