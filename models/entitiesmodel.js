@@ -260,13 +260,12 @@ EntitiesModel.prototype.searchElementsExtended = function(scope, entities) {
           // group result by id_entity
           return Promise.resolve(_.reduce(dataResult, (result, r, i) => {
             const rows = r.rows.map((v)=>{
-              console.log()
               return Object.assign(v, {
                 geometry: v.geometry ? JSON.parse(v.geometry).coordinates : null
               });
             });
             return Object.assign(result, {
-              [d.rows[i].id_entity]: r.rows
+              [d.rows[i].id_entity]: rows
             });
           }, {}));
         });
