@@ -241,7 +241,6 @@ VariablesModel.prototype.getVariablesTimeSerie = function(opts) {
 
             sql = `${preSQL} ${sql} ${postSQL}`;
           }
-          console.log(sql);
           return this.cachedQuery(sql);
 
         }).bind(this)());
