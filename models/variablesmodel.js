@@ -183,7 +183,26 @@ VariablesModel.prototype.getVariablesTimeSerie = function(opts) {
               )`;
           }
 
-          var sql = `
+          if (opts.noData) {
+            var sql = `
+            WITH filtered AS (
+               SELECT
+                 DISTINCT id_entity
+               FROM ${schema}.${entityTables[i]}_lastdata
+               WHERE true
+               ${qb.bbox()}
+               ${qb.filter()}
+            )
+            SELECT
+              _timeserie AS start,
+              (_timeserie + '${step}')::timestamp AS finish,
+              ${aggs[i]}(foo."${varNames[i]}") AS "${varIds[i]}_${aggs[i]}"${ cGroupAlias }
+            FROM generate_series('${opts.start}'::timestamp, '${opts.finish}'::timestamp, '${ step }') AS _timeserie
+            LEFT JOIN ${ from } foo
+            ON foo."TimeInstant" >= _timeserie AND foo."TimeInstant" < _timeserie + '${ step }' and id_entity IN (SELECT id_entity FROM filtered)
+            GROUP BY _timeserie${ cGroupAlias } ORDER BY _timeserie`;
+          } else {
+            var sql = `
             WITH filtered AS (
                SELECT
                  DISTINCT id_entity
@@ -201,6 +220,7 @@ VariablesModel.prototype.getVariablesTimeSerie = function(opts) {
             ON foo."TimeInstant" >= _timeserie AND foo."TimeInstant" < _timeserie + '${ step }'
             WHERE id_entity IN (SELECT id_entity FROM filtered)
             GROUP BY _timeserie${ cGroupAlias } ORDER BY _timeserie`;
+          }
 
           if (opts.findTimes && (aggs[i] === 'MIN' || aggs[i] === 'MAX')) {
             var preSQL = `
@@ -221,7 +241,7 @@ VariablesModel.prototype.getVariablesTimeSerie = function(opts) {
 
             sql = `${preSQL} ${sql} ${postSQL}`;
           }
-
+          console.log(sql);
           return this.cachedQuery(sql);
 
         }).bind(this)());

@@ -144,7 +144,8 @@ router.post('/timeserie',
       id_vars: req.body.vars,
       filters: req.body.filters || {},
       findTimes: req.body.findTimes || false,
-      csv: req.body.csv || false
+      csv: req.body.csv || false,
+      noData: req.body.noData || false
     };
 
     if (opts.filters.group) {

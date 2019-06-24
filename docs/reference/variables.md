@@ -135,6 +135,7 @@ It returns a time serie of a variable (or a set of variables).
 - step (optional): time resolution. Values: 1h, 2h, 4h, 1d (default: 1d)
 - bbox (optional) : [lx,ly,ux,uy]
 - findTimes  : true | false. Default to false. If set to true and max or min aggregator are used, it returns the list of "TimeInstant" where the max or min appears.
+- noData (optional): true | false. Default to false. If true, it returns a registry for every time (aggregated by the step), even if there is no data (in that case, it's going to return null).
 
 Payload:
 ```json
@@ -147,6 +148,7 @@ Payload:
     "step": "1d"
   },
   "findTimes" : true,
+  "noData": false,
   "filters": {
     "bbox": [-5.11170,37.24000,-5.10818,37.24303]
   }
