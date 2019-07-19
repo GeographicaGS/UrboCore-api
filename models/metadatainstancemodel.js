@@ -1076,6 +1076,19 @@ MetadataInstanceModel.prototype.getAggVarsFromEntity = function(scope, entity) {
   return this.promise_query(q);
 };
 
+MetadataInstanceModel.prototype.getTableVarsFromVar = function(scope, id_variable) {
+  var q = `
+    SELECT array_agg(entity_field) AS columns, table_name AS table
+    FROM metadata.variables_scopes
+    WHERE id_scope = '${scope}'
+    AND table_name = (
+      SELECT table_name 
+      FROM metadata.variables_scopes 
+      WHERE id_scope = '${scope}' AND id_variable = '${id_variable}'
+    )
+    GROUP BY table_name`;
+  return this.promise_query(q);
+};
 
 MetadataInstanceModel.prototype.getEntityTable = function(scope, entity) {
   var q = `SELECT table_name AS table
