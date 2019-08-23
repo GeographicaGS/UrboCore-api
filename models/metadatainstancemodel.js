@@ -932,25 +932,40 @@ MetadataInstanceModel.prototype.getAllElementsByDevice = function(scope,id_entit
 
 
 MetadataInstanceModel.prototype.getMetadataQueryForDeviceLastData = function(scope, id_entity, cb) {
-  var mtdQry = ['WITH q AS',
-    '(SELECT DISTINCT ON(v.id_variable) s.dbschema, e.entity_name,',
-    'e.table_name,',
-    'c.category_name, ',
-    'v.id_variable,e.id_entity,v.entity_field, v.var_name, v.var_units, v.var_agg',
-    'FROM metadata.scopes s',
-    'INNER JOIN metadata.categories_scopes c on c.id_scope = s.id_scope',
-    'INNER JOIN metadata.entities_scopes e on c.id_category=e.id_category',
-    'INNER JOIN metadata.variables_scopes v on v.id_entity=e.id_entity and s.id_scope = v.id_scope',
-    'WHERE s.id_scope=$1 AND e.id_entity=$2 AND s.status=1 AND v.type!=\'aggregated\') ',
-    'SELECT table_name, dbschema, id_entity, entity_name, category_name, ',
-    'array_agg(id_variable) AS vars_ids, ',
-    'array_agg(entity_field) AS vars, ',
-    'array_agg(var_name) AS varname, ',
-    'array_agg(var_units) AS varunits,',
-    'array_agg(array_to_string(var_agg, \';\')) AS varagg ',
-    'FROM q GROUP BY table_name, dbschema, id_entity,entity_name,category_name'];
+  var mtdQry = `WITH q AS
+    (
+      SELECT DISTINCT ON(v.id_variable) s.dbschema,
+      e.entity_name,
+      e.table_name,
+      c.category_name,
+      v.id_variable,
+      e.id_entity,
+      v.entity_field,
+      v.var_name,
+      v.var_units,
+      v.var_agg
+      FROM metadata.scopes s
+      INNER JOIN metadata.categories_scopes c
+          ON c.id_scope = s.id_scope
+      INNER JOIN metadata.entities_scopes e
+          ON c.id_category=e.id_category
+      INNER JOIN metadata.variables_scopes v
+          ON v.id_entity=e.id_entity and s.id_scope = v.id_scope
+      WHERE true
+          AND s.id_scope=$1
+          AND e.id_entity=$2
+          AND s.status=1 AND
+          v.type!=\'aggregated\'
+    )
+    SELECT table_name, dbschema, id_entity, entity_name, category_name,
+    array_agg(id_variable) AS vars_ids,
+    array_agg(entity_field) AS vars,
+    array_agg(var_name) AS varname,
+    array_agg(var_units) AS varunits,
+    array_agg(array_to_string(var_agg, \';\')) AS varagg
+    FROM q GROUP BY table_name, dbschema, id_entity,entity_name,category_name`;
 
-  this.query(mtdQry.join(' '), [scope, id_entity], function(err,d) {
+  this.query(mtdQry, [scope, id_entity], function(err,d) {
     if (err) return cb(err);
     return cb(null, d);
   });
@@ -1082,8 +1097,8 @@ MetadataInstanceModel.prototype.getTableVarsFromVar = function(scope, id_variabl
     FROM metadata.variables_scopes
     WHERE id_scope = '${scope}'
     AND table_name = (
-      SELECT table_name 
-      FROM metadata.variables_scopes 
+      SELECT table_name
+      FROM metadata.variables_scopes
       WHERE id_scope = '${scope}' AND id_variable = '${id_variable}'
     )
     GROUP BY table_name`;
