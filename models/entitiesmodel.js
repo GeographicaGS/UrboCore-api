@@ -248,11 +248,20 @@ EntitiesModel.prototype.searchElementsExtended = function(scope, entities) {
         const queryFilter = `${qb.bbox()} ${qb.filter()}`;
 
         const suffix = entities[entityData.id_entity].suffix || '';
-        return this.cachedQuery(`
-          SELECT DISTINCT ON (id_entity) id_entity, ST_AsGeoJSON(position) as geometry ${entitySelect.join(', ')}
+        const sql = `
+          SELECT 
+            DISTINCT ON (id_entity) 
+            id_entity, 
+            CASE WHEN GeometryType("position") = 'POLYGON' THEN
+              ST_AsGeoJSON(ST_PointOnSurface("position"))
+            ELSE
+              ST_AsGeoJSON("position")
+            END AS geometry
+            ${entitySelect.join(', ')}
           FROM ${entityData.dbschema}.${entityData.entity_table_name}${suffix}
           WHERE TRUE ${queryFilter}
-        `);
+        `;
+        return this.cachedQuery(sql);
       }).bind(this)); 
 
       return Promise.all(promises)
