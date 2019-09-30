@@ -278,6 +278,38 @@ AuthModel.prototype.addEmptyNode = function( name, parent , cb) {
   return this.uq(q, cb);
 }
 
+AuthModel.prototype.addEmptyNodeIfNotExist = function( name, root_ancestor_name, parent_name, cb) {
+
+  var q = `
+    WITH _full_graph AS (
+      WITH RECURSIVE users_graph_cte AS (
+        SELECT * FROM public.users_graph
+        WHERE (name = '${root_ancestor_name}')
+        UNION
+        SELECT ug.* FROM public.users_graph ug
+        INNER JOIN users_graph_cte c ON ug.parent = c.id
+      )
+      SELECT *
+      FROM users_graph_cte 
+    ), _parent AS (
+      SELECT * 
+      FROM _full_graph 
+      WHERE name = '${parent_name}'
+      LIMIT 1
+    )
+    INSERT INTO public.users_graph (name, parent, read_users, write_users)
+    SELECT 
+      '${name}' AS name,
+      (SELECT id FROM _parent) AS parent,
+      coalesce((SELECT read_users FROM _parent)::bigint[], array[]::bigint[]) AS read_users,
+      coalesce((SELECT write_users FROM _parent)::bigint[], array[]::bigint[]) AS write_users
+    WHERE NOT EXISTS (SELECT id FROM _full_graph WHERE name = '${name}') 
+    AND EXISTS (SELECT * FROM _parent)
+    RETURNING id`;
+
+  return this.uq(q, cb);
+}
+
 AuthModel.prototype.clearOrphanNodes = function(cb) {
   var q = 'DELETE from public.users_graph where id in (select id from public.users_graph where parent not in (select id from public.users_graph))';
   this.query(q, null, (function(err, d) {
