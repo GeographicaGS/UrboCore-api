@@ -270,7 +270,7 @@ VariablesModel.prototype.addVariable = function(scope, data, cb) {
     // Insert into users_graph if not exist
     auth.createNodeIfNotExist(data.id, scope, data.id_entity, (err) => {
       if (err)
-        return cb(e);
+        return cb(err);
 
       // Insert into metadata
       var thresholds = 'NULL';
