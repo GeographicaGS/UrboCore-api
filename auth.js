@@ -322,6 +322,7 @@ module.exports.findByNamesInScope = findByNamesInScope;
 module.exports.findByName = graph.findByName;
 module.exports.updateNode = graph.updateNode;
 module.exports.createEmptyNode = graph.createEmptyNode;
+module.exports.createNodeIfNotExist = graph.createNodeIfNotExist;
 module.exports.deleteNodeByName = graph.deleteNodeByName;
 module.exports.routes = auth.routes;
 module.exports.checkNotifierToken = check.checkNotifierToken;
