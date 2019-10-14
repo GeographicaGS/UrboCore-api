@@ -569,6 +569,7 @@ router.post('/:id/historic',
       agg: req.body.agg,
       start: req.body.time.start,
       finish: req.body.time.finish,
+      historic_geom: req.body.historic_geom || false,
       filters: req.body.filters || {'condition': {}},
       bbox: req.body.filters ? req.body.filters.bbox : undefined
     };
