@@ -842,7 +842,7 @@ VariablesModel.prototype.getVariableHistoric = function(opts) {
     var select = null;
     if (Array.isArray(opts.agg)) {
       select = 'json_build_object(';
-      for (var agg of opts.agg) {        
+      for (var agg of opts.agg) {
         if (agg.toUpperCase() === 'NOAGG') {
           select += `'${ agg }', LAST(${ dataVar.entity_field }), `
         } else {
@@ -868,11 +868,24 @@ VariablesModel.prototype.getVariableHistoric = function(opts) {
       var group = `GROUP BY ${ groupBy }`;
     }
 
-    if (suffix === '') {
+    if (opts.historic_geom === true && suffix === '') {
+
       var sql = `
         SELECT ${ select }
           FROM (
-            SELECT DISTINCT ld.position,${ selectJoin } p.*
+            SELECT DISTINCT ld.position as position_ld, ${ selectJoin } p.*
+              FROM ${ opts.scope }.${ dataVar.table_name } p
+                JOIN ${ opts.scope }.${ dataVar.entity_table_name }_lastdata ld
+                  ON ld.id_entity = p.id_entity) AS foo
+              WHERE TRUE ${ where } ${ bboxAndFilter }
+          ${ group }`;
+
+    }
+    else if (suffix === '') {
+      var sql = `
+        SELECT ${ select }
+          FROM (
+            SELECT DISTINCT ld.position, ${ selectJoin } p.*
               FROM ${ opts.scope }.${ dataVar.table_name } p
                 JOIN ${ opts.scope }.${ dataVar.entity_table_name }_lastdata ld
                   ON ld.id_entity = p.id_entity) AS foo
