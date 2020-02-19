@@ -110,10 +110,7 @@ module.exports.password = function (req, res, next) {
 
     // NO URBO USER
     if (err || !data.rows.length) {
-
       if (ldapopts && ldapopts.autoCreateUserByLdap === true && ldapopts.forceLdapAuthentication !== true) {
-
-
         authLdapUser(password, email, function(err, ldapuser) {
           if (err) {
             return next(invalidLdapUser());
@@ -125,36 +122,30 @@ module.exports.password = function (req, res, next) {
             res.user = resUser;
             return next();
           });
-
         });
-
       }
       else {
         return next(invalidUserPassword());
       }
-
     }
 
     // URBO USER
     if (data && data.rows && data.rows.length) {
       var user = data.rows[0];
-
       // Check LDAP USER if necessary
       if (ldapopts && ldapopts.forceLdapAuthentication === true) {
         authLdapUser(password, email, function(err, ldapuser) {
           if (err) {
             return next(invalidLdapUser());
           }
-          log.info('ldapuser -- ', ldapuser);
-          if (ldapuser != null ) {
-            var um = new usersmodel();
-            um.editHashedPassword(user.users_id, password, function(err, done) {
-              user.id = user.users_id;
-              delete user.password;
-              delete user.users_id;
-              res.user = user;
-              return next();
-            });
+          var usermail = user['email'];
+          usermail = usermail.replace(/@.*$/,'');
+          if (ldapuser != null && usermail === ldapuser) {
+            user.id = user.users_id;
+            delete user.password;
+            delete user.users_id;
+            res.user = user;
+            return next();
           }
           else {
             return next(invalidLdapUser());
@@ -175,9 +166,7 @@ module.exports.password = function (req, res, next) {
               res.user = resUser;
               return next();
             });
-
           });
-
         }
 
         // Check PASSWORD
