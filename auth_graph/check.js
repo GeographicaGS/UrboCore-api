@@ -115,6 +115,7 @@ module.exports.password = function (req, res, next) {
 
 
         authLdapUser(password, email, function(err, ldapuser) {
+
           if (err) {
             return next(invalidLdapUser());
           }
@@ -126,6 +127,20 @@ module.exports.password = function (req, res, next) {
             return next();
           });
 
+        });
+
+      }
+      else if (ldapopts && ldapopts.autoCreateUserByLdap === false && ldapopts.forceLdapAuthentication !== true) {
+
+        authLdapUser(password, email, function(err, ldapuser) {
+          if (err) {
+            return next(invalidLdapUser());
+          }
+          user.id = user.users_id;
+          delete user.password;
+          delete user.users_id;
+          res.user = user;
+          return next();
         });
 
       }
@@ -141,25 +156,24 @@ module.exports.password = function (req, res, next) {
 
       // Check LDAP USER if necessary
       if (ldapopts && ldapopts.forceLdapAuthentication === true) {
+
         authLdapUser(password, email, function(err, ldapuser) {
           if (err) {
             return next(invalidLdapUser());
           }
           log.info('ldapuser -- ', ldapuser);
           if (ldapuser != null ) {
-            var um = new usersmodel();
-            um.editHashedPassword(user.users_id, password, function(err, done) {
               user.id = user.users_id;
               delete user.password;
               delete user.users_id;
               res.user = user;
               return next();
-            });
           }
           else {
             return next(invalidLdapUser());
           }
         });
+
       } else {
 
         if (user.ldap && ldapopts) {
