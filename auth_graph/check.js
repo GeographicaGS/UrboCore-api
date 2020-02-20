@@ -141,7 +141,7 @@ module.exports.password = function (req, res, next) {
           log.info('ldapuser --', ldapuser);
           var usermail = user['email'];
           usermail = usermail.replace(/@.*$/,'');
-          if (ldapuser != null && usermail === ldapuser) {
+          if (ldapuser != null && usermail === ldapuser.uid ) {
             user.id = user.users_id;
             delete user.password;
             delete user.users_id;
