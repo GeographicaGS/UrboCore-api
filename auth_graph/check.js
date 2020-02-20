@@ -138,6 +138,7 @@ module.exports.password = function (req, res, next) {
           if (err) {
             return next(invalidLdapUser());
           }
+          log.info('ldapuser --', ldapuser);
           var usermail = user['email'];
           usermail = usermail.replace(/@.*$/,'');
           if (ldapuser != null && usermail === ldapuser) {
