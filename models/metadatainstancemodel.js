@@ -948,7 +948,7 @@ MetadataInstanceModel.prototype.getMetadataQueryForDeviceLastData = function(sco
       INNER JOIN metadata.categories_scopes c
           ON c.id_scope = s.id_scope
       INNER JOIN metadata.entities_scopes e
-          ON c.id_category=e.id_category
+          ON c.id_category=e.id_category and s.id_scope = e.id_scope
       INNER JOIN metadata.variables_scopes v
           ON v.id_entity=e.id_entity and s.id_scope = v.id_scope
       WHERE true
