@@ -82,8 +82,7 @@ function createdbUserFromLdapUser(ldapuser, password, email, callback) {
 
 function authLdapUser(password, email, callback) {
   var auth = new LdapAuth(ldapopts);
-  var ldapusername = email.replace(/@.*$/,'');
-  auth.authenticate(ldapusername, password, function(err, user) {
+  auth.authenticate(email, password, function(err, user) {
     if (err) {
       return callback(user, null);
     }
