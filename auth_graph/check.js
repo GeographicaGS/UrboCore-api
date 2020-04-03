@@ -97,6 +97,7 @@ function authLdapUser(password, email, callback) {
   });
 }
 
+
 module.exports.password = function (req, res, next) {
   var email = req.body.email;
   var password = req.body.password;
