@@ -81,6 +81,7 @@ function createdbUserFromLdapUser(ldapuser, password, email, callback) {
 }
 
 function authLdapUser(password, email, callback) {
+  var ldapopts = config.getData().ldap;
   if (ldapopts.addEmailDomain) {
     var domainToAdd = email.replace(/.*@/, '').split('.')[0];
     var matchLastDomain = ldapopts.searchBase.match(/(([^,]+))$/g)[0];
