@@ -84,7 +84,7 @@ function authLdapUser(password, email, callback) {
   if (ldapopts.addEmailDomain) {
     var domainToAdd = email.replace(/.*@/, '').split('.')[0];
     var matchLastDomain = ldapopts.searchBase.match(/(([^,]+))$/g)[0];
-    console.log('match', ldapopts.searchBase.match(/[,]/));
+    log.info('match', ldapopts.searchBase.match(/[,]/));
     if (ldapopts.searchBase.match(/[,]/) === null ) {
       ldapopts.searchBase = ldapopts.searchBase.replace(/(([^,]+))$/, `dc=${domainToAdd},${matchLastDomain}`)
     } else {
@@ -92,14 +92,14 @@ function authLdapUser(password, email, callback) {
     }
   }
   var auth = new LdapAuth(ldapopts);
-  console.log(ldapopts);
+  log.info('ldapuser --', ldapopts);
   auth.authenticate(email, password, function(err, user) {
     if (err) {
-      console.log(err, user);
+      log.info('ldapuser --', user);
       return callback(user, null);
     }
     else {
-      console.log(err, user);
+      log.info('ldapuser --', user);
       return callback(null, user);
     }
   });
