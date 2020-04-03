@@ -81,6 +81,11 @@ function createdbUserFromLdapUser(ldapuser, password, email, callback) {
 }
 
 function authLdapUser(password, email, callback) {
+  if (ldapopts.addEmailDomain) {
+    var domainToAdd = email.replace(/.*@/, "").split('.')[0];
+    var matchLastDomain = ldapopts.searchBase.match(/(([^,]+))$/g);
+    ldapopts.searchBase = ldapopts.searchBase.replace(/(([^,]+))$/, `dc=${domainToAdd},${matchLastDomain}`)
+  }
   var auth = new LdapAuth(ldapopts);
   auth.authenticate(email, password, function(err, user) {
     if (err) {
@@ -124,7 +129,13 @@ module.exports.password = function (req, res, next) {
         });
       }
       else {
-        return next(invalidUserPassword());
+        // return next(invalidUserPassword());
+        authLdapUser(password, email, function(err, ldapuser) {
+          if (err) {
+            return next(invalidLdapUser());
+          }
+          return next();
+        });
       }
     }
 
