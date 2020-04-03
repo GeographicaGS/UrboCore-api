@@ -129,13 +129,7 @@ module.exports.password = function (req, res, next) {
         });
       }
       else {
-        // return next(invalidUserPassword());
-        authLdapUser(password, email, function(err, ldapuser) {
-          if (err) {
-            return next(invalidLdapUser());
-          }
-          return next();
-        });
+        return next(invalidUserPassword());
       }
     }
 
