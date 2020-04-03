@@ -83,15 +83,23 @@ function createdbUserFromLdapUser(ldapuser, password, email, callback) {
 function authLdapUser(password, email, callback) {
   if (ldapopts.addEmailDomain) {
     var domainToAdd = email.replace(/.*@/, '').split('.')[0];
-    var matchLastDomain = ldapopts.searchBase.match(/(([^,]+))$/g);
-    ldapopts.searchBase = ldapopts.searchBase.replace(/(([^,]+))$/, `dc=${domainToAdd},${matchLastDomain}`)
+    var matchLastDomain = ldapopts.searchBase.match(/(([^,]+))$/g)[0];
+    console.log('match', ldapopts.searchBase.match(/[,]/));
+    if (ldapopts.searchBase.match(/[,]/) === null ) {
+      ldapopts.searchBase = ldapopts.searchBase.replace(/(([^,]+))$/, `dc=${domainToAdd},${matchLastDomain}`)
+    } else {
+      ldapopts.searchBase = `dc=${domainToAdd},${ldapopts.searchBase}`
+    }
   }
   var auth = new LdapAuth(ldapopts);
+  console.log(ldapopts);
   auth.authenticate(email, password, function(err, user) {
     if (err) {
+      console.log(err, user);
       return callback(user, null);
     }
     else {
+      console.log(err, user);
       return callback(null, user);
     }
   });
