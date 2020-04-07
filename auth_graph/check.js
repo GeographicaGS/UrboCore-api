@@ -81,17 +81,32 @@ function createdbUserFromLdapUser(ldapuser, password, email, callback) {
 }
 
 function authLdapUser(password, email, callback) {
+  log.info('ldapopts ++++++', config.getData().ldap.searchBase);
+  if (ldapopts.addEmailDomain) {
+    var domainToAdd = email.replace(/.*@/, '').split('.')[0];
+    var matchLastDomain = ldapopts.searchBase.match(/(([^,]+))$/g)[0];
+    log.info('match', matchLastDomain);
+    if (ldapopts.searchBase.match(/[,]/) != null ) {
+      ldapopts.searchBase = ldapopts.searchBase.replace(/(([^,]+))$/, `dc=${domainToAdd},${matchLastDomain}`)
+    } else {
+      ldapopts.searchBase = `dc=${domainToAdd},${ldapopts.searchBase}`
+    }
+  }
   var auth = new LdapAuth(ldapopts);
-  var ldapusername = email.replace(/@.*$/,'');
-  auth.authenticate(ldapusername, password, function(err, user) {
+  log.info('ldapuser --', ldapopts);
+  auth.authenticate(email, password, function(err, user) {
+    ldapopts.searchBase = ldapopts.searchBase.replace('dc=' + domainToAdd + ',', '');
     if (err) {
+      log.info('ldapuser --', user);
       return callback(user, null);
     }
     else {
+      log.info('ldapuser --', user);
       return callback(null, user);
     }
   });
 }
+
 
 module.exports.password = function (req, res, next) {
   var email = req.body.email;
