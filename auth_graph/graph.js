@@ -79,6 +79,11 @@ function createEmptyNode(name, parent, cb) {
   return m.addEmptyNode(name, parent, cb);
 }
 
+function createNodeIfNotExist(name, root_ancestor_name, parent_name, cb) {
+  var m = new model();
+  return m.addEmptyNodeIfNotExist(name, root_ancestor_name, parent_name, cb);
+}
+
 function deleteNodeByName(name, cb) {
   var m = new model();
   return m.deleteNodeByName(name, cb);
@@ -91,4 +96,5 @@ module.exports.updateNode = updateNode;
 module.exports.getUserGraph = getUserGraph;
 module.exports.getTreeByName = getTreeByName;
 module.exports.createEmptyNode = createEmptyNode;
+module.exports.createNodeIfNotExist = createNodeIfNotExist;
 module.exports.deleteNodeByName = deleteNodeByName;
