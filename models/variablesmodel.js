@@ -33,6 +33,7 @@ var HistFormatter = require('../protools/histformatter');
 var VariablesFormatter = require('../protools/variablesformatter');
 var DummyFormatter = require('../protools/dummyformatter');
 var RankingFormatter = require('../protools/rankingformatter');
+var auth = require('../auth.js');
 var log = utils.log();
 var _ = require('underscore');
 
@@ -265,47 +266,53 @@ VariablesModel.prototype.addVariable = function(scope, data, cb) {
 
   var model = new EntityModel();
   model.getCategoriesForEntity(scope, data.id_entity, (function(err, d) {
-    var category = d.rows[0].id_category;
 
-    var thresholds = 'NULL';
-    if (Array.isArray(data.var_thresholds)) {
-      if (data.var_thresholds[0] != null) {
-        thresholds = 'ARRAY[' + data.var_thresholds.join(',') + ']::double precision[]';
+    // Insert into users_graph if not exist
+    auth.createNodeIfNotExist(data.id, scope, data.id_entity, (err) => {
+      if (err)
+        return cb(err);
+
+      // Insert into metadata
+      var thresholds = 'NULL';
+      if (Array.isArray(data.var_thresholds)) {
+        if (data.var_thresholds[0] != null) {
+          thresholds = 'ARRAY[' + data.var_thresholds.join(',') + ']::double precision[]';
+        }
       }
-    }
 
-    var table_name = d.rows[0].table_name;
-    if ('table_name' in data) {
-      table_name = data.table_name;
-    }
+      var table_name = d.rows[0].table_name;
+      if ('table_name' in data) {
+        table_name = data.table_name;
+      }
 
-    var baseQry = 'INSERT INTO metadata.variables_scopes (id_scope, id_variable, id_entity, entity_field, var_name, var_units, var_thresholds, var_agg, var_reverse, config, table_name, type) VALUES ';
-    var values = {
-      id_scope: '\'' + scope + '\'',
-      id_variable: '\'' + data.id + '\'',
-      id_entity: '\'' + data.id_entity + '\'',
-      entity_field: '\'' + data.column + '\'',
-      name: '\'' + data.name + '\'',
-      units: '\'' + data.units + '\'',
-      var_thresholds: thresholds,
-      var_agg: 'ARRAY[\'' + data.var_agg.join('\',\'') + '\']',
-      var_reverse: data.reverse,
-      config: '\'' + JSON.stringify(data.config) + '\'',
-      table_name: '\'' + table_name + '\'',
-      type: '\'' + data.type + '\''
-    }
-    var rawValues = _.values(values).join(',');
-    var insertQry = baseQry + '(' + rawValues + ')';
+      var baseQry = 'INSERT INTO metadata.variables_scopes (id_scope, id_variable, id_entity, entity_field, var_name, var_units, var_thresholds, var_agg, var_reverse, config, table_name, type) VALUES ';
+      var values = {
+        id_scope: '\'' + scope + '\'',
+        id_variable: '\'' + data.id + '\'',
+        id_entity: '\'' + data.id_entity + '\'',
+        entity_field: '\'' + data.column + '\'',
+        name: '\'' + data.name + '\'',
+        units: '\'' + data.units + '\'',
+        var_thresholds: thresholds,
+        var_agg: 'ARRAY[\'' + data.var_agg.join('\',\'') + '\']',
+        var_reverse: data.reverse,
+        config: '\'' + JSON.stringify(data.config) + '\'',
+        table_name: '\'' + table_name + '\'',
+        type: '\'' + data.type + '\''
+      }
+      var rawValues = _.values(values).join(',');
+      var insertQry = baseQry + '(' + rawValues + ')';
 
-    try {
-      this.query(insertQry, null, function(err, d) {
-        if (err) return cb(err);
-        return cb(null, {id: data.id});
-      });
-    }
-    catch (e) {
-      return cb(e);
-    }
+      try {
+        this.query(insertQry, null, function(err, d) {
+          if (err) return cb(err);
+          return cb(null, {id: data.id});
+        });
+      }
+      catch (e) {
+        return cb(e);
+      }
+    })
 
   }).bind(this));
 
